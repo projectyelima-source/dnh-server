@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AdherencesModule } from './adherences/adherences.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { ChatModule } from './chat/chat.module';
 import { ChronicConditionsModule } from './chronic-conditions/chronic-conditions.module';
 import { ClientModule } from './client/client.module';
 import { ConcernsModule } from './concerns/concerns.module';
@@ -30,6 +31,7 @@ import { VitalHistoriesModule } from './vital-histories/vital-histories.module';
 		AppointmentsModule,
 		FacilitiesModule,
 		HcpModule,
+		ChatModule,
 	],
 })
 export class FeaturesModule {}
