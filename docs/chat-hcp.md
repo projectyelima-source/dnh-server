@@ -80,50 +80,63 @@ socket.emit('markRead', { roomId: currentRoomId });
 
 Base URL: `https://api.example.com/api/v1`
 
-### List Chat Sessions
+### List Chat Sessions (Paginated)
 
 ```http
-GET /chat/hcp/sessions
+GET /chat/hcp/sessions?page=1&limit=10
 Authorization: Bearer <jwt>
 ```
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `page` | query | no | The page number to fetch (default: 1) |
+| `limit` | query | no | Number of sessions per page (default: 10) |
 
 **Response**
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "66a1b2c3d4e5f6a7b8c9d0e1",
-      "otherParticipant": {
-        "id": "user_abc123",
-        "name": "Jane Doe",
-        "role": "patient"
-      },
-      "latestMessage": {
-        "id": "77a1b2c3d4e5f6a7b8c9d0e2",
-        "content": "I have a headache",
-        "messageType": "text",
-        "senderId": "user_abc123",
-        "createdAt": "2026-07-02T10:30:00.000Z"
+  "data": {
+    "rows": [
+      {
+        "id": "66a1b2c3d4e5f6a7b8c9d0e1",
+        "otherParticipant": {
+          "id": "user_abc123",
+          "name": "Jane Doe",
+          "role": "patient"
+        },
+        "latestMessage": {
+          "id": "77a1b2c3d4e5f6a7b8c9d0e2",
+          "content": "I have a headache",
+          "messageType": "text",
+          "senderId": "user_abc123",
+          "createdAt": "2026-07-02T10:30:00.000Z"
+        }
       }
-    }
-  ],
+    ],
+    "total": 1,
+    "pageSize": 10,
+    "page": 1,
+    "nextPage": null,
+    "prevPage": null,
+    "totalPages": 1
+  },
   "message": "Chat sessions fetched successfully"
 }
 ```
 
-### Get Message History
+### Get Message History (Paginated)
 
 ```http
-GET /chat/hcp/rooms/{roomId}/messages?limit=20&cursor=…
+GET /chat/hcp/rooms/{roomId}/messages?page=1&limit=20
 Authorization: Bearer <jwt>
 ```
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | `roomId` | path | yes | MongoDB ObjectId of the room |
-| `limit` | query | no | Messages per page (default 20) |
-| `cursor` | query | no | `_id` of the oldest message from the previous page |
+| `page` | query | no | The page number to fetch (default: 1) |
+| `limit` | query | no | Number of messages per page (default: 20) |
 
 **Response shape** identical to the client endpoint (see `chat-client.md`).
 
@@ -144,7 +157,7 @@ Same constraints as the client variant: max 50 MB, image/video/audio mime types 
 
 ## UI Integration Tips
 
-- **Contact list**: Fetch `GET /chat/hcp/sessions` on dashboard load to show the sidebar with patient names and last message previews.
+- **Contact list**: Fetch `GET /chat/hcp/sessions?page=1&limit=20` on dashboard load to show the sidebar with patient names and last message previews.
 - **Unread count**: Listen for `newMessage` events globally; if `senderId !== myId` and the room isn't the active one, increment a badge counter.
-- **Infinite scroll**: Use cursor-based pagination on scroll-to-top (oldest messages load first within a page, but the list is reversed by the server so newest-appearing messages are at the bottom).
+- **Infinite scroll**: Use page-based pagination on scroll-to-top (increment `page` query parameter to load older messages; since the server returns them sorted newest first, the UI should prepend new items as they arrive).
 - **Media thumbnails**: Check `messageType` — `'image'` URLs can be used directly in `<img>` tags; `'video'` and `'audio'` URLs go in `<video>` / `<audio>` controls.

@@ -82,72 +82,93 @@ socket.emit('markRead', { 'roomId': currentRoomId });
 
 Base URL: `https://api.example.com/api/v1`
 
-### List Chat Sessions
+### List Chat Sessions (Paginated)
 
 ```http
-GET /chat/client/sessions
+GET /chat/client/sessions?page=1&limit=10
 Authorization: Bearer <firebase-token>
 ```
+
+| Param | Type | Required | Description |
+|---|---|---|---|
+| `page` | query | no | The page number to fetch (default: 1) |
+| `limit` | query | no | Number of sessions per page (default: 10) |
 
 **Response**
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "66a1b2c3d4e5f6a7b8c9d0e1",
-      "otherParticipant": {
-        "id": "66f1a2b3c4d5e6f7a8b9c0d1",
-        "name": "Dr. John Doe",
-        "role": "hcp"
-      },
-      "latestMessage": {
-        "id": "77a1b2c3d4e5f6a7b8c9d0e2",
-        "content": "Hello, how are you?",
-        "messageType": "text",
-        "senderId": "66f1a2b3c4d5e6f7a8b9c0d1",
-        "createdAt": "2026-07-02T10:30:00.000Z"
+  "data": {
+    "rows": [
+      {
+        "id": "66a1b2c3d4e5f6a7b8c9d0e1",
+        "otherParticipant": {
+          "id": "66f1a2b3c4d5e6f7a8b9c0d1",
+          "name": "Dr. John Doe",
+          "role": "hcp"
+        },
+        "latestMessage": {
+          "id": "77a1b2c3d4e5f6a7b8c9d0e2",
+          "content": "Hello, how are you?",
+          "messageType": "text",
+          "senderId": "66f1a2b3c4d5e6f7a8b9c0d1",
+          "createdAt": "2026-07-02T10:30:00.000Z"
+        }
       }
-    }
-  ],
+    ],
+    "total": 1,
+    "pageSize": 10,
+    "page": 1,
+    "nextPage": null,
+    "prevPage": null,
+    "totalPages": 1
+  },
   "message": "Chat sessions fetched successfully"
 }
 ```
 
-Sorted by most recent message first. `latestMessage` is `null` if no messages yet.
+Sorted by most recent message/activity first. `latestMessage` is `null` if no messages yet.
 
 ### Get Message History (Paginated)
 
 ```http
-GET /chat/client/rooms/{roomId}/messages?limit=20&cursor=…
+GET /chat/client/rooms/{roomId}/messages?page=1&limit=20
 Authorization: Bearer <firebase-token>
 ```
 
 | Param | Type | Required | Description |
 |---|---|---|---|
 | `roomId` | path | yes | MongoDB ObjectId of the room |
-| `limit` | query | no | Number of messages (default 20) |
-| `cursor` | query | no | `_id` of the **oldest** message from the previous page |
+| `page` | query | no | The page number to fetch (default: 1) |
+| `limit` | query | no | Number of messages per page (default: 20) |
 
-**Pagination**: Messages are returned oldest-first within a page. To get the next page, pass the `id` of the first message in the current page as `cursor`.
+**Pagination**: Messages are returned sorted by `createdAt: -1` (newest first). Page 1 will contain the most recent messages.
 
 **Response**
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "id": "66a1b2c3d4e5f6a7b8c9d0e1",
-      "senderId": "user_abc123",
-      "roomId": "66a1b2c3d4e5f6a7b8c9d0e1",
-      "messageType": "text",
-      "content": "Hello doctor!",
-      "isRead": true,
-      "parentMessageId": null,
-      "createdAt": "2026-07-02T10:30:00.000Z",
-      "updatedAt": "2026-07-02T10:30:00.000Z"
-    }
-  ],
+  "data": {
+    "rows": [
+      {
+        "id": "66a1b2c3d4e5f6a7b8c9d0e1",
+        "senderId": "user_abc123",
+        "roomId": "66a1b2c3d4e5f6a7b8c9d0e1",
+        "messageType": "text",
+        "content": "Hello doctor!",
+        "isRead": true,
+        "parentMessageId": null,
+        "createdAt": "2026-07-02T10:30:00.000Z",
+        "updatedAt": "2026-07-02T10:30:00.000Z"
+      }
+    ],
+    "total": 1,
+    "pageSize": 20,
+    "page": 1,
+    "nextPage": null,
+    "prevPage": null,
+    "totalPages": 1
+  },
   "message": "Messages fetched successfully"
 }
 ```

@@ -55,33 +55,33 @@ GET {{baseUrl}}/
 ### HCP Sessions
 
 ```http
-GET {{baseUrl}}/chat/hcp/sessions
+GET {{baseUrl}}/chat/hcp/sessions?page=1&limit=10
 Authorization: Bearer {{hcpToken}}
 ```
 
 ### Client Sessions
 
 ```http
-GET {{baseUrl}}/chat/client/sessions
+GET {{baseUrl}}/chat/client/sessions?page=1&limit=10
 Authorization: Bearer {{clientToken}}
 ```
 
 ### Message History (HCP)
 
 ```http
-GET {{baseUrl}}/chat/hcp/rooms/{{roomId}}/messages?limit=10
+GET {{baseUrl}}/chat/hcp/rooms/{{roomId}}/messages?page=1&limit=10
 Authorization: Bearer {{hcpToken}}
 ```
 
 To paginate:
 ```http
-GET {{baseUrl}}/chat/hcp/rooms/{{roomId}}/messages?limit=10&cursor={{firstMessageId}}
+GET {{baseUrl}}/chat/hcp/rooms/{{roomId}}/messages?page=2&limit=10
 ```
 
 ### Message History (Client)
 
 ```http
-GET {{baseUrl}}/chat/client/rooms/{{roomId}}/messages?limit=10
+GET {{baseUrl}}/chat/client/rooms/{{roomId}}/messages?page=1&limit=10
 Authorization: Bearer {{clientToken}}
 ```
 

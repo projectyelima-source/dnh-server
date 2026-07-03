@@ -1,8 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { generateFilter } from '@/common/factory';
 import { Personnel } from '@/features/doctors/entities/personnel.entity';
 import { Patient } from '@/features/patients/entities/patient.entity';
+import { ChatPaginationQueryDto } from './dto';
 import { ChatMessage, MessageType } from './entities/message.entity';
 import { ChatRoom } from './entities/room.entity';
 
@@ -67,24 +69,23 @@ export class ChatService {
 		);
 	}
 
-	async getPaginatedMessages(roomId: string, limit = 20, cursor?: string) {
-		const filter: Record<string, any> = { roomId };
-
-		if (cursor) {
-			filter._id = { $lt: new Types.ObjectId(cursor) };
-		}
+	async getPaginatedMessages(roomId: string, query: ChatPaginationQueryDto) {
+		const { pageFilter } = generateFilter(query);
 
 		const messages = await this.messageModel
-			.find(filter)
-			.sort({ _id: -1 })
-			.limit(limit)
+			.find({ roomId })
+			.sort({ createdAt: -1 })
+			.skip(pageFilter.offset)
+			.limit(pageFilter.limit)
 			.populate({
 				path: 'parentMessageId',
 				select: 'content senderId messageType',
 			})
 			.lean();
 
-		return messages.reverse();
+		const count = await this.messageModel.countDocuments({ roomId });
+
+		return { rows: messages, count };
 	}
 
 	async findRoomById(roomId: string) {
@@ -98,8 +99,9 @@ export class ChatService {
 	async listUserSessions(
 		userId: string,
 		userRole: 'patient' | 'hcp',
-	): Promise<
-		{
+		query: ChatPaginationQueryDto,
+	): Promise<{
+		rows: {
 			id: string;
 			otherParticipant: { id: string; name: string; role: string };
 			latestMessage: {
@@ -109,12 +111,19 @@ export class ChatService {
 				senderId: string;
 				createdAt: Date;
 			} | null;
-		}[]
-	> {
+		}[];
+		count: number;
+	}> {
+		const { pageFilter } = generateFilter(query);
+
 		const rooms = await this.roomModel
 			.find({ participants: userId })
 			.sort({ updatedAt: -1 })
+			.skip(pageFilter.offset)
+			.limit(pageFilter.limit)
 			.lean();
+
+		const count = await this.roomModel.countDocuments({ participants: userId });
 
 		const sessions = await Promise.all(
 			rooms.map(async (room) => {
@@ -167,6 +176,6 @@ export class ChatService {
 			}),
 		);
 
-		return sessions;
+		return { rows: sessions, count };
 	}
 }

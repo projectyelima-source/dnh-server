@@ -13,14 +13,22 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { CustomApiResponse, GetUser } from '@/common/decorators';
 import { ParseMongoIdPipe } from '@/common/decorators/validators/pipes';
-import { ApiSuccessResponseDto, throwError } from '@/common/utils/responses';
+import {
+	ApiSuccessResponseDto,
+	PaginatedDataResponseDto,
+	throwError,
+} from '@/common/utils/responses';
 import { FirebaseService } from '@/core/firebase/firebase.service';
 import { ChatGateway } from './chat.gateway';
 import { ChatService } from './chat.service';
-import { ChatMessageResponseDto, ChatSessionDto } from './dto';
+import {
+	ChatMessageResponseDto,
+	ChatPaginationQueryDto,
+	ChatSessionDto,
+} from './dto';
 import { MessageType } from './entities/message.entity';
 
 @ApiTags('Chat')
@@ -112,38 +120,28 @@ export class ChatController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorizeChronicCare'], {
+	@CustomApiResponse(['paginated', 'authorizeChronicCare'], {
 		type: ChatMessageResponseDto,
-		isArray: true,
 		message: 'Messages fetched successfully',
-	})
-	@ApiQuery({
-		name: 'limit',
-		required: false,
-		type: Number,
-		description: 'Number of messages to fetch (default: 20)',
-	})
-	@ApiQuery({
-		name: 'cursor',
-		required: false,
-		type: String,
-		description:
-			'Cursor ID for pagination (the _id of the oldest fetched message)',
 	})
 	@Get('hcp/rooms/:roomId/messages')
 	async getHistory(
 		@Param('roomId', ParseMongoIdPipe) roomId: string,
-		@Query('limit') limit?: number,
-		@Query('cursor') cursor?: string,
+		@Query() query: ChatPaginationQueryDto,
 	) {
 		try {
-			const messages = await this.chatService.getPaginatedMessages(
+			const response = await this.chatService.getPaginatedMessages(
 				roomId,
-				limit ?? 20,
-				cursor,
+				query,
+			);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows || [],
+				query.page || 1,
+				query.pageSize || 10,
+				response.count,
 			);
 			return new ApiSuccessResponseDto(
-				messages,
+				paginated,
 				HttpStatus.OK,
 				'Messages fetched successfully',
 			);
@@ -152,38 +150,28 @@ export class ChatController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorize'], {
+	@CustomApiResponse(['paginated', 'authorize'], {
 		type: ChatMessageResponseDto,
-		isArray: true,
 		message: 'Messages fetched successfully',
-	})
-	@ApiQuery({
-		name: 'limit',
-		required: false,
-		type: Number,
-		description: 'Number of messages to fetch (default: 20)',
-	})
-	@ApiQuery({
-		name: 'cursor',
-		required: false,
-		type: String,
-		description:
-			'Cursor ID for pagination (the _id of the oldest fetched message)',
 	})
 	@Get('client/rooms/:roomId/messages')
 	async getHistoryClient(
 		@Param('roomId', ParseMongoIdPipe) roomId: string,
-		@Query('limit') limit?: number,
-		@Query('cursor') cursor?: string,
+		@Query() query: ChatPaginationQueryDto,
 	) {
 		try {
-			const messages = await this.chatService.getPaginatedMessages(
+			const response = await this.chatService.getPaginatedMessages(
 				roomId,
-				limit ?? 20,
-				cursor,
+				query,
+			);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows || [],
+				query.page || 1,
+				query.pageSize || 10,
+				response.count,
 			);
 			return new ApiSuccessResponseDto(
-				messages,
+				paginated,
 				HttpStatus.OK,
 				'Messages fetched successfully',
 			);
@@ -192,20 +180,29 @@ export class ChatController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorizeChronicCare'], {
+	@CustomApiResponse(['paginated', 'authorizeChronicCare'], {
 		type: ChatSessionDto,
-		isArray: true,
 		message: 'Chat sessions fetched successfully',
 	})
 	@Get('hcp/sessions')
-	async getHcpSessions(@GetUser('sub', ParseMongoIdPipe) personnelId: string) {
+	async getHcpSessions(
+		@GetUser('sub', ParseMongoIdPipe) personnelId: string,
+		@Query() query: ChatPaginationQueryDto,
+	) {
 		try {
-			const sessions = await this.chatService.listUserSessions(
+			const response = await this.chatService.listUserSessions(
 				personnelId,
 				'hcp',
+				query,
+			);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows || [],
+				query.page || 1,
+				query.pageSize || 10,
+				response.count,
 			);
 			return new ApiSuccessResponseDto(
-				sessions,
+				paginated,
 				HttpStatus.OK,
 				'Chat sessions fetched successfully',
 			);
@@ -214,20 +211,29 @@ export class ChatController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorize'], {
+	@CustomApiResponse(['paginated', 'authorize'], {
 		type: ChatSessionDto,
-		isArray: true,
 		message: 'Chat sessions fetched successfully',
 	})
 	@Get('client/sessions')
-	async getClientSessions(@GetUser('uid') patientId: string) {
+	async getClientSessions(
+		@GetUser('uid') patientId: string,
+		@Query() query: ChatPaginationQueryDto,
+	) {
 		try {
-			const sessions = await this.chatService.listUserSessions(
+			const response = await this.chatService.listUserSessions(
 				patientId,
 				'patient',
+				query,
+			);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows || [],
+				query.page || 1,
+				query.pageSize || 10,
+				response.count,
 			);
 			return new ApiSuccessResponseDto(
-				sessions,
+				paginated,
 				HttpStatus.OK,
 				'Chat sessions fetched successfully',
 			);
