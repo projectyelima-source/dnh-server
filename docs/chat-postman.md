@@ -150,25 +150,57 @@ const socket = io('http://localhost:4815', {
 
 socket.on('connect', () => {
   console.log('connected as', socket.id);
+});
+
+socket.on('userConnected', (user) => {
+  console.log('my user id:', user.id, 'role:', user.role);
 
   // Join a room
   socket.emit('joinPrivateChat', { recipientId: process.env.PATIENT_ID });
+});
 
-  // Listen for room response
-  socket.on('joinPrivateChat', (room) => {
-    console.log('room:', room);
+socket.on('roomJoined', (data) => {
+  console.log('room:', data.roomId);
 
-    // Send a message
-    socket.emit('sendMessage', {
-      roomId: room.id,
-      content: 'Hello from Postman test!',
+  // Send a message
+  socket.emit('sendMessage', {
+    roomId: data.roomId,
+    content: 'Hello!',
+  });
+
+  // Edit it after 2s (paste the message id from newMessage)
+  setTimeout(() => {
+    socket.emit('editMessage', {
+      roomId: data.roomId,
+      messageId: '...', // paste the id from newMessage
+      content: 'Edited message',
     });
-  });
+  }, 2000);
 
-  // Listen for new messages
-  socket.on('newMessage', (msg) => {
-    console.log('new message:', msg);
-  });
+  // Delete it after 4s (paste the message id)
+  setTimeout(() => {
+    socket.emit('deleteMessage', {
+      roomId: data.roomId,
+      messageId: '...', // paste the id
+      deleteFor: 'everyone',
+    });
+  }, 4000);
+});
+
+socket.on('newMessage', (msg) => {
+  console.log('new message:', msg.id, msg.content, 'edited:', msg.edited);
+});
+
+socket.on('messageEdited', ({ id, content, edited }) => {
+  console.log('message edited:', id, content, edited);
+});
+
+socket.on('messageDeleted', ({ id, deletedForEveryone }) => {
+  console.log('message deleted:', id, 'forEveryone:', deletedForEveryone);
+});
+
+socket.on('userStatus', ({ userId, online, lastSeen }) => {
+  console.log('user', userId, online ? 'online' : 'offline', lastSeen || '');
 });
 
 socket.on('disconnect', () => console.log('disconnected'));
@@ -184,24 +216,36 @@ HCP_TOKEN=eyJ... PATIENT_ID=user_abc123 node test-ws.mjs
 ## 6. WebSocket Events to Test Manually
 
 | Step | Event | Payload | Expected Outcome |
-|---|---|---|---|
-| 1 | `joinPrivateChat` | `{ recipientId: "user_abc123" }` | Receive room object back |
+|---|---|---|---|---|
+| 0 | *(listen)* `userConnected` | — | Receive `{ id, role }` on connect |
+| 1 | `joinPrivateChat` | `{ recipientId: "user_abc123" }` | Receive `roomJoined` with roomId |
 | 2 | `sendMessage` | `{ roomId, content: "hi" }` | All room members receive `newMessage` |
-| 3 | `typing` | `{ roomId, isTyping: true }` | Other member receives `typing` with `userId` + `isTyping: true` |
-| 4 | `markRead` | `{ roomId }` | Sender's unread messages in the room get `isRead: true` (check via history endpoint) |
+| 2b | `sendMessage` (reply) | `{ roomId, content: "reply", parentMessageId: "..." }` | `newMessage` includes populated `parentMessageId` object |
+| 2c | `editMessage` | `{ roomId, messageId, content: "edited" }` | All members receive `messageEdited` with updated content |
+| 2d | `deleteMessage` | `{ roomId, messageId, deleteFor: "everyone" }` | All members receive `messageDeleted` with `deletedForEveryone: true` |
+| 2e | `deleteMessage` | `{ roomId, messageId, deleteFor: "me" }` | Only the requester receives `messageDeleted` with `deletedForEveryone: false` |
+| 3 | `typing` | `{ roomId, isTyping: true }` | Other member receives `userTyping` with `userId` + `isTyping: true` |
+| 4 | `audioRecording` | `{ roomId, isRecording: true }` | Other member receives `userAudioRecording` with `userId` + `isRecording: true` |
+| 5 | `markRead` | `{ roomId }` | Sender receives `messagesRead`; message history shows `isRead: true` |
+| 6 | *(listen)* `userStatus` | — | Receive presence updates when the other user connects/disconnects |
 
 ---
 
 ## 7. End-to-End Test Flow
 
 ```
-1.  POST  /api/v1/chat/hcp/sessions              → get roomId (or empty array)
-2.  WS    joinPrivateChat(recipientId: patientId) → room object (create if none)
-3.  WS    sendMessage(roomId, "Test message")     → newMessage event
-4.  GET   /api/v1/chat/hcp/rooms/{roomId}/messages → see the message
-5.  WS    markRead(roomId)                        → isRead flips to true
-6.  POST  /api/v1/chat/hcp/rooms/{roomId}/media   → upload image, get URL back
-7.  GET   /api/v1/chat/client/sessions            → patient sees the session
-8.  WS    (as patient) joinPrivateChat(hcpId)     → join same room
-9.  WS    (as patient) sendMessage("Reply")       → reply visible to HCP
+ 0.  WS    *(listen)* userConnected                 → receive `{ id, role }`
+ 1.  WS    joinPrivateChat(recipientId: patientId)   → roomJoined with roomId
+ 2.  WS    sendMessage(roomId, "Test message")       → newMessage event
+  2b. WS    editMessage(roomId, msgId, "Edited")      → messageEdited event
+  2c. WS    sendMessage(roomId, "Reply", parentMessageId: "...") → newMessage with parentMessageId populated
+  2d. WS    deleteMessage(roomId, msgId, "everyone")   → messageDeleted event (all see placeholder)
+  2e. WS    deleteMessage(roomId, msgId, "me")         → messageDeleted event (only sender, message removed)
+  3.  WS    markRead(roomId)                          → messagesRead event + isRead flips
+ 4.  POST  /api/v1/chat/hcp/rooms/{roomId}/media     → upload image, get URL back
+ 5.  GET   /api/v1/chat/hcp/rooms/{roomId}/messages   → see messages with `edited`, `parentMessageId` fields
+ 6.  GET   /api/v1/chat/client/sessions              → patient sees session with `unread: true`
+ 7.  WS    (as patient) joinPrivateChat(hcpId)       → join same room
+ 8.  WS    (as patient) sendMessage("Reply")         → reply visible to HCP
+ 9.  WS    *(listen)* userStatus                     → receive online/offline updates
 ```

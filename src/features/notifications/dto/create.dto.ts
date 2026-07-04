@@ -54,14 +54,15 @@ export class AugurSendNotificationDto {
 	title: string;
 	body: string;
 	userId: string;
+	chatId?: string;
 	payload?: {
-		actionId: string;
-		notification_type: string;
-		actionBtn1Display: string;
-		actionBtn1Payload: string;
-		actionBtn1Endpoint: string;
-		actionBtn2Display: string;
-		actionBtn2Payload: string;
-		actionBtn2Endpoint: string;
+		actionId?: string;
+		notification_type?: string;
+		actionBtn1Display?: string;
+		actionBtn1Payload?: string;
+		actionBtn1Endpoint?: string;
+		actionBtn2Display?: string;
+		actionBtn2Payload?: string;
+		actionBtn2Endpoint?: string;
 	};
 }

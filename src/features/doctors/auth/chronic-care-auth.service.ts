@@ -67,7 +67,7 @@ export class ChronicCareAuthService {
 			{
 				audience: UserType.CHRONIC_CARE.toString(),
 			},
-			{ role: personnel.role as PersonnelRoles },
+			{ role: personnel.role as PersonnelRoles, email: personnel.email },
 		);
 
 		return token;
@@ -101,7 +101,7 @@ export class ChronicCareAuthService {
 					{
 						audience: UserType.CHRONIC_CARE.toString(),
 					},
-					{ role: PersonnelRoles.CLINICIAN },
+					{ role: PersonnelRoles.CLINICIAN, email: email! },
 				);
 
 				return token;

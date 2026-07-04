@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { generateFilter } from '@/common/factory';
 import { Personnel } from '@/features/doctors/entities/personnel.entity';
+import { PushService } from '@/features/notifications/push/push.service';
 import { Patient } from '@/features/patients/entities/patient.entity';
 import { ChatPaginationQueryDto } from './dto';
 import { ChatMessage, MessageType } from './entities/message.entity';
@@ -10,11 +11,14 @@ import { ChatRoom } from './entities/room.entity';
 
 @Injectable()
 export class ChatService {
+	private logger = new Logger(ChatService.name);
+
 	constructor(
 		@InjectModel(ChatRoom.name) private roomModel: Model<ChatRoom>,
 		@InjectModel(ChatMessage.name) private messageModel: Model<ChatMessage>,
 		@InjectModel(Personnel.name) private personnelModel: Model<Personnel>,
 		@InjectModel(Patient.name) private patientModel: Model<Patient>,
+		private readonly pushService: PushService,
 	) {}
 
 	async getOrCreateRoom(userA: string, userB: string) {
@@ -69,6 +73,49 @@ export class ChatService {
 		);
 	}
 
+	async editMessage(messageId: string, userId: string, content: string) {
+		const message = await this.messageModel.findById(messageId);
+		if (!message) {
+			throw new NotFoundException('Message not found');
+		}
+		if (message.senderId !== userId) {
+			throw new Error('You can only edit your own messages');
+		}
+		if (message.messageType !== MessageType.TEXT) {
+			throw new Error('Only text messages can be edited');
+		}
+		message.content = content;
+		message.edited = true;
+		await message.save();
+		return message;
+	}
+
+	async deleteMessage(
+		messageId: string,
+		userId: string,
+		deleteFor: 'me' | 'everyone',
+	) {
+		const message = await this.messageModel.findById(messageId);
+		if (!message) {
+			throw new NotFoundException('Message not found');
+		}
+
+		if (deleteFor === 'everyone') {
+			if (message.senderId !== userId) {
+				throw new Error('You can only delete your own messages for everyone');
+			}
+			message.deletedForEveryone = true;
+			await message.save();
+			return { deletedForEveryone: true, message };
+		}
+
+		await this.messageModel.updateOne(
+			{ _id: messageId },
+			{ $addToSet: { deletedFor: userId } },
+		);
+		return { deletedForEveryone: false };
+	}
+
 	async getPaginatedMessages(roomId: string, query: ChatPaginationQueryDto) {
 		const { pageFilter } = generateFilter(query);
 
@@ -83,9 +130,22 @@ export class ChatService {
 			})
 			.lean();
 
+		const rows = messages.map((msg: any) => {
+			const row: any = {
+				id: msg._id?.toString(),
+				...msg,
+				_id: undefined,
+				__v: undefined,
+			};
+			if (row.deletedForEveryone) {
+				row.content = 'This message was deleted';
+			}
+			return row;
+		});
+
 		const count = await this.messageModel.countDocuments({ roomId });
 
-		return { rows: messages, count };
+		return { rows, count };
 	}
 
 	async findRoomById(roomId: string) {
@@ -96,6 +156,54 @@ export class ChatService {
 		return room;
 	}
 
+	async sendPushNotificationForMessage(data: {
+		senderId: string;
+		senderRole: 'patient' | 'hcp';
+		roomId: string;
+		content: string;
+		messageType: string;
+	}) {
+		try {
+			const room = await this.findRoomById(data.roomId);
+			const recipientId = room.participants.find((id) => id !== data.senderId);
+			if (!recipientId) return;
+
+			let senderName: string;
+			if (data.senderRole === 'hcp') {
+				const personnel = await this.personnelModel
+					.findById(data.senderId)
+					.select('userName')
+					.lean();
+				senderName = personnel?.userName ?? 'Clinician';
+			} else {
+				const patient = await this.patientModel
+					.findOne({ userId: data.senderId })
+					.select('name')
+					.lean();
+				senderName = patient?.name ?? 'Patient';
+			}
+
+			const body =
+				data.messageType === 'audio'
+					? '🎤 Voice message'
+					: data.messageType === 'image'
+						? '📷 Photo'
+						: data.messageType === 'video'
+							? '🎬 Video'
+							: data.content;
+
+			await this.pushService.sendAugurNotification({
+				userId: recipientId,
+				title: senderName,
+				body,
+				chatId: data.roomId,
+				payload: { notification_type: 'chat' },
+			});
+		} catch (error) {
+			this.logger.error('Failed to send push notification', error);
+		}
+	}
+
 	async listUserSessions(
 		userId: string,
 		userRole: 'patient' | 'hcp',
@@ -103,6 +211,7 @@ export class ChatService {
 	): Promise<{
 		rows: {
 			id: string;
+			unread: boolean;
 			otherParticipant: { id: string; name: string; role: string };
 			latestMessage: {
 				id: string;
@@ -149,15 +258,24 @@ export class ChatService {
 				}
 
 				const latestMessage = await this.messageModel
-					.findOne({ roomId: room._id.toString() })
+					.findOne({
+						roomId: room._id.toString(),
+						deletedForEveryone: { $ne: true },
+					})
 					.sort({ _id: -1 })
-					.select('content messageType senderId createdAt')
+					.select('content messageType senderId createdAt isRead')
 					.lean();
+
+				const isUnread =
+					!!latestMessage &&
+					latestMessage.senderId !== userId &&
+					!latestMessage.isRead;
 
 				const plainId = (room as any)._id?.toString();
 
 				return {
 					id: plainId,
+					unread: isUnread,
 					otherParticipant: {
 						id: otherId,
 						name,

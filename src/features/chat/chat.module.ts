@@ -4,6 +4,7 @@ import {
 	Personnel,
 	PersonnelSchema,
 } from '@/features/doctors/entities/personnel.entity';
+import { AugurNotificationsModule } from '@/features/notifications/notifications.module';
 import {
 	Patient,
 	PatientSchema,
@@ -23,6 +24,7 @@ import { WsAuthVerifier } from './ws-auth.verifier';
 			{ name: Personnel.name, schema: PersonnelSchema },
 			{ name: Patient.name, schema: PatientSchema },
 		]),
+		AugurNotificationsModule,
 	],
 	controllers: [ChatController],
 	providers: [ChatGateway, ChatService, WsAuthVerifier],

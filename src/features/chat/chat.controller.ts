@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBody, ApiConsumes, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CustomApiResponse, GetUser } from '@/common/decorators';
 import { ParseMongoIdPipe } from '@/common/decorators/validators/pipes';
 import {
@@ -28,6 +28,7 @@ import {
 	ChatMessageResponseDto,
 	ChatPaginationQueryDto,
 	ChatSessionDto,
+	MediaUploadDto,
 } from './dto';
 import { MessageType } from './entities/message.entity';
 
@@ -54,13 +55,13 @@ export class ChatController {
 	@ApiConsumes('multipart/form-data')
 	@ApiBody({
 		description: 'Media file to upload',
-		schema: {
-			type: 'object',
-			properties: {
-				file: { type: 'string', format: 'binary' },
-				parentMessageId: { type: 'string' },
-			},
-		},
+		type: MediaUploadDto,
+	})
+	@ApiQuery({
+		name: 'parentMessageId',
+		required: false,
+		type: String,
+		description: 'Optional parent message ID if this media is a reply',
 	})
 	@UseInterceptors(FileInterceptor('file'))
 	async uploadMedia(
@@ -75,9 +76,15 @@ export class ChatController {
 		)
 		file: Express.Multer.File,
 		@Query('parentMessageId') parentMessageId?: string,
+		@GetUser('sub') userId?: string,
 	) {
 		try {
-			return await this.handleMediaUpload(file, roomId, parentMessageId);
+			return await this.handleMediaUpload(
+				file,
+				roomId,
+				parentMessageId,
+				userId,
+			);
 		} catch (error) {
 			throwError(this.logger, error);
 		}
@@ -91,13 +98,13 @@ export class ChatController {
 	@ApiConsumes('multipart/form-data')
 	@ApiBody({
 		description: 'Media file to upload',
-		schema: {
-			type: 'object',
-			properties: {
-				file: { type: 'string', format: 'binary' },
-				parentMessageId: { type: 'string' },
-			},
-		},
+		type: MediaUploadDto,
+	})
+	@ApiQuery({
+		name: 'parentMessageId',
+		required: false,
+		type: String,
+		description: 'Optional parent message ID if this media is a reply',
 	})
 	@UseInterceptors(FileInterceptor('file'))
 	async uploadMediaClient(
@@ -112,9 +119,15 @@ export class ChatController {
 		)
 		file: Express.Multer.File,
 		@Query('parentMessageId') parentMessageId?: string,
+		@GetUser('uid') userId?: string,
 	) {
 		try {
-			return await this.handleMediaUpload(file, roomId, parentMessageId);
+			return await this.handleMediaUpload(
+				file,
+				roomId,
+				parentMessageId,
+				userId,
+			);
 		} catch (error) {
 			throwError(this.logger, error);
 		}
@@ -246,6 +259,7 @@ export class ChatController {
 		file: Express.Multer.File,
 		roomId: string,
 		parentMessageId?: string,
+		userId?: string,
 	) {
 		const uuidToken = crypto.randomUUID();
 		const mime = file.mimetype;
@@ -271,7 +285,7 @@ export class ChatController {
 		const fileUrl = `https://firebasestorage.googleapis.com/v0/b/${this.storageBucket}/o/${encodeURIComponent(storagePath + '/' + file.originalname)}?alt=media&token=${uuidToken}`;
 
 		const savedMsg = await this.chatService.saveMessage(
-			'system',
+			userId ?? 'system',
 			roomId,
 			fileUrl,
 			messageType,

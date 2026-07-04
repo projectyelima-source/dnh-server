@@ -48,7 +48,8 @@ export class PushService {
 				body,
 			},
 			data: {
-				notification_type: 'zyptyk_ai',
+				...(dto.chatId && { chat_id: dto.chatId }),
+				notification_type: dto.payload?.notification_type ?? 'zyptyk_ai',
 				click_action: 'FLUTTER_NOTIFICATION_CLICK',
 			},
 			android: {

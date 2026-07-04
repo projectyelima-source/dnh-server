@@ -23,6 +23,6 @@ import { PushService } from './push/push.service';
 		BullModule.registerQueue({ name: AugurNotification.name }),
 		DhVectorsModule,
 	],
-	exports: [NotificationsService],
+	exports: [NotificationsService, PushService],
 })
 export class AugurNotificationsModule {}

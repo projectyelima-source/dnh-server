@@ -55,12 +55,31 @@ export class ChatMessage extends BaseEntity {
 	isRead: boolean;
 
 	@Prop({
+		default: false,
+		description: 'Whether the message has been edited',
+	})
+	edited: boolean;
+
+	@Prop({
 		type: ObjectId,
 		ref: 'ChatMessage',
 		description:
 			'ID of the parent message this is replying to (null if not a reply)',
 	})
 	parentMessageId: Types.ObjectId | null;
+
+	@Prop({
+		type: [String],
+		default: [],
+		description: 'User IDs who deleted this message for themselves',
+	})
+	deletedFor: string[];
+
+	@Prop({
+		default: false,
+		description: 'Whether the message was deleted for everyone',
+	})
+	deletedForEveryone: boolean;
 }
 
 export const ChatMessageSchema = SchemaFactory.createForClass(ChatMessage);

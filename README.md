@@ -181,9 +181,20 @@ Manages MongoDB `Patient` documents. Handles patient creation (called by `AuthSe
 
 Standard CRUD modules managing individual health data domains. Each owns its Mongoose schema and is responsible for registering its models.
 
-#### NotificationsModule
+### NotificationsModule
 
 BullMQ-backed notification queue. The `NotificationsConsumer` processes queued FCM push notifications. The `AuguryService` (AI agent — see below) writes to this module to schedule reminders.
+
+#### ChatModule
+
+Real-time peer-to-peer chat between patients and HCPs using Socket.IO. Includes:
+- Dual-auth WebSocket gateway (Firebase for patients, JWT for HCPs)
+- REST endpoints for session listing, message history, and media uploads
+- Push notifications via FCM for incoming messages
+- In-memory presence tracking, typing/recording indicators, read receipts
+- Message editing and delete-for-me/delete-for-everyone
+
+See [`docs/chat-backend.md`](docs/chat-backend.md) for the full technical reference, and [`docs/chat-client.md`](docs/chat-client.md) / [`docs/chat-hcp.md`](docs/chat-hcp.md) for API contracts.
 
 #### DhVectorsModule
 

@@ -83,3 +83,7 @@ Available at `http://localhost:4815/docs` in dev/staging. Disabled in production
 
 `src/common/utils/` contains helpers (`CodeGeneratorHelper`, `WeekDeterminantHelper`, `IanaTimezonesHelper`, `ZipHelper`, `CheckpointerUtils`).
 `src/features/dh-vectors/` manages Qdrant vector store (`dh_vectors` collection, 3072d Gemini embeddings).
+
+## Chat module
+
+The peer-to-peer chat system lives in `src/features/chat/`. Full context (schemas, events, auth, gotchas) is in [`docs/chat-backend.md`](docs/chat-backend.md). API contracts for frontend consumers are in [`docs/chat-client.md`](docs/chat-client.md) (patient) and [`docs/chat-hcp.md`](docs/chat-hcp.md) (HCP). Read the backend doc before making any chat-related changes.
