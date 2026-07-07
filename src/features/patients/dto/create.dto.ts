@@ -1,17 +1,40 @@
 import { ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
-import { IsMongoId, IsOptional, IsString } from 'class-validator';
+import {
+	IsDateString,
+	IsMongoId,
+	IsNumber,
+	IsOptional,
+	IsString,
+	Min,
+} from 'class-validator';
 import { PatientDto } from './patient.dto';
 
 export class CreatePatientDto extends PickType(PatientDto, [
 	'patientCode',
 	'userId',
 	'name',
-	'dateOfBirth',
 	'gender',
 	'timezone',
 ]) {
 	chronicConditions: string[];
+
+	@ApiPropertyOptional({
+		description: 'Date of birth of the patient in MM/DD/YYYY format',
+		example: '01/01/1963',
+	})
+	@IsOptional()
+	@IsDateString()
+	dateOfBirth?: Date;
+
+	@ApiPropertyOptional({
+		description: 'Age of the patient in years',
+		example: 35,
+	})
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	age?: number;
 
 	@ApiPropertyOptional({
 		description:

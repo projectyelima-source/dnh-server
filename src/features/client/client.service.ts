@@ -45,6 +45,7 @@ import type { CreateAppointmentRequestDto } from '@/features/appointments/appoin
 import { AppointmentsService } from '@/features/appointments/appointments.service';
 import { ChronicConditionsService } from '@/features/chronic-conditions/chronic-conditions.service';
 import { ConcernsService } from '@/features/concerns/concerns.service';
+import { GetFacilitiesQueryDto } from '@/features/facilities/dto';
 import { FacilitiesService } from '@/features/facilities/facilities.service';
 import {
 	CreateMedicationDto,
@@ -849,7 +850,7 @@ export class ClientService {
 		return this.seededMedsService.findAllPaginated(filter, page, pageSize);
 	}
 
-	async fetchFacilities(query: ChronicChatMessagesQueryDto) {
+	async fetchFacilities(query: GetFacilitiesQueryDto) {
 		return this.facilitiesService.findAll(query);
 	}
 }

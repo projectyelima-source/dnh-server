@@ -7,11 +7,29 @@ import {
 	IsEnum,
 	IsMongoId,
 	IsNotEmpty,
+	IsNumber,
 	IsOptional,
 	IsString,
+	Min,
 	MinLength,
+	Validate,
+	ValidationArguments,
+	ValidatorConstraint,
+	ValidatorConstraintInterface,
 } from 'class-validator';
 import { GenderEnum } from '@/features/patients/entities/patient.entity';
+
+@ValidatorConstraint({ name: 'ageOrDateOfBirth', async: false })
+class AgeOrDateOfBirthConstraint implements ValidatorConstraintInterface {
+	validate(_value: any, args: ValidationArguments) {
+		const dto = args.object as any;
+		return !!(dto.age || dto.dateOfBirth);
+	}
+
+	defaultMessage() {
+		return 'Either age or dateOfBirth must be provided';
+	}
+}
 
 export class TestNotificationDto {
 	@ApiProperty({
@@ -71,14 +89,25 @@ export class OnboardDto {
 	// @IsOptional()
 	// nhisNumber?: string;
 
-	@ApiProperty({
+	@ApiPropertyOptional({
 		description: 'Date of birth of the patient in MM-DD-YYYY format',
 		example: new Date(),
 	})
-	@IsNotEmpty()
+	@IsOptional()
 	@IsDate()
 	@Type(() => Date)
-	dateOfBirth: Date;
+	dateOfBirth?: Date;
+
+	@ApiPropertyOptional({
+		description:
+			'Age of the patient in years. Provide either age or dateOfBirth.',
+		example: 35,
+	})
+	@IsOptional()
+	@IsNumber()
+	@Min(0)
+	@Validate(AgeOrDateOfBirthConstraint)
+	age?: number;
 
 	// @ApiProperty({ example: 1990 })
 	// @IsNumber()

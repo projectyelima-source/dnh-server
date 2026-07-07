@@ -43,7 +43,10 @@ import {
 } from '@/features/appointments/dto';
 import { GetChronicConditionDto } from '@/features/chronic-conditions/dto';
 import { GetConcernDto } from '@/features/concerns/dto';
-import { GetFacilityDto } from '@/features/facilities/dto';
+import {
+	GetFacilitiesQueryDto,
+	GetFacilityDto,
+} from '@/features/facilities/dto';
 import {
 	AdherenceLogsQueryDto,
 	CreateMedicationDto,
@@ -795,7 +798,7 @@ export class ClientController {
 		message: 'Facilities fetched successfully',
 	})
 	@Get('facilities')
-	async fetchFacilities(@Query() query: ChronicChatMessagesQueryDto) {
+	async fetchFacilities(@Query() query: GetFacilitiesQueryDto) {
 		try {
 			const response = await this.clientService.fetchFacilities(query);
 			const paginated = new PaginatedDataResponseDto(

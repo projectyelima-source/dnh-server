@@ -1,5 +1,4 @@
-import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose';
-import { differenceInYears } from 'date-fns';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { ObjectId } from 'mongodb';
 import { BaseDH } from '@/common/entities/base-dh.entity';
 import { deleteByPattern } from '@/core/caching/utils';
@@ -192,12 +191,7 @@ export class Patient extends BaseDH {
 	})
 	facility: Facility;
 
-	@Virtual({
-		get: function (this: Patient) {
-			const age = differenceInYears(new Date(), this.dateOfBirth);
-			return age;
-		},
-	})
+	@Prop({ description: 'Age of the patient in years' })
 	age: number;
 
 	bmi: number;

@@ -24,13 +24,21 @@ export class FacilitiesService {
 	async findAll(query: GetFacilitiesQueryDto) {
 		const { pageFilter } = generateFilter(query);
 
+		const filter: Record<string, any> = {};
+		if (query.search) {
+			filter.name = {
+				$regex: `^${query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+				$options: 'i',
+			};
+		}
+
 		const [rows, count] = await Promise.all([
 			this.facilityModel
-				.find()
+				.find(filter)
 				.skip(pageFilter.offset)
 				.limit(pageFilter.limit)
 				.sort(pageFilter.orderBy),
-			this.facilityModel.countDocuments(),
+			this.facilityModel.countDocuments(filter),
 		]);
 
 		return { rows, count };

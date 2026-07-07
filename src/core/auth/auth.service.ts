@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
+import { differenceInYears } from 'date-fns';
 import { Message } from 'firebase-admin/messaging';
 import { OAuth2Client } from 'google-auth-library';
 import { PatientsService } from '@/features/patients/patients.service';
@@ -47,11 +48,19 @@ export class AuthService {
 
 	async onboarding(userId: string, dto: OnboardDto) {
 		// retriever user id and create patient in mongodb.
+		let age = dto.age;
+		let dateOfBirth = dto.dateOfBirth;
+
+		if (dateOfBirth) {
+			age = differenceInYears(new Date(), dateOfBirth);
+		}
+
 		const patientId = await this.patientsService.create({
 			userId: userId,
 			name: `${dto.firstname} ${dto.lastname}`,
 			gender: dto.gender,
-			dateOfBirth: dto.dateOfBirth,
+			dateOfBirth,
+			age,
 			chronicConditions: dto.chronicConditions,
 			facility: dto.facility,
 		});
