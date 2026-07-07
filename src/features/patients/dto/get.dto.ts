@@ -27,6 +27,7 @@ export class GetPatientDto extends IntersectionType(
 		'yearOfBirth',
 		'height',
 		'gender',
+		'facility',
 	]),
 	GenericResponseDto,
 ) {

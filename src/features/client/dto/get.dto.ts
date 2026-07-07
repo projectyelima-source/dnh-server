@@ -28,6 +28,25 @@ export class ChronicChatMessagesQueryDto extends PickType(
 	pageSize: number;
 }
 
+export class PreloadedMedsQueryDto extends PickType(PaginationRequestDto, [
+	'page',
+]) {
+	@ApiPropertyOptional({ default: 10, name: 'limit' })
+	@IsOptional()
+	@Type(() => Number)
+	@IsInt()
+	@Min(1)
+	@Expose({ name: 'limit' })
+	pageSize: number;
+
+	@ApiPropertyOptional({
+		description: 'Search by medication name (prefix match)',
+	})
+	@IsOptional()
+	@IsString()
+	search?: string;
+}
+
 export class ChronicCareChatMessageDto extends PartialType(GenericResponseDto) {
 	@ApiResponseProperty({ example: 'assistant', enum: ChronicCareMessageRole })
 	role: ChronicCareMessageRole;

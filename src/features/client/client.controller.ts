@@ -8,6 +8,7 @@ import {
 	Logger,
 	Param,
 	ParseFilePipeBuilder,
+	Patch,
 	Post,
 	Put,
 	Query,
@@ -42,14 +43,19 @@ import {
 } from '@/features/appointments/dto';
 import { GetChronicConditionDto } from '@/features/chronic-conditions/dto';
 import { GetConcernDto } from '@/features/concerns/dto';
+import { GetFacilityDto } from '@/features/facilities/dto';
 import {
 	AdherenceLogsQueryDto,
+	CreateMedicationDto,
 	GetMedicationDto,
 	MedicationAdherenceLogsDto,
+	MedicationDetailDto,
 	TodaysMedicationCountDto,
 	TodaysMedicationDto,
 	TodaysMedicationsQueryDto,
+	UpdateMedicationDto,
 } from '@/features/medications/dto';
+import { GetSeededMedDto } from '@/features/medications/seeded-meds/dto';
 import { GetPatientDto } from '@/features/patients/dto';
 import {
 	BpTrendsQueryDto,
@@ -69,6 +75,7 @@ import {
 	ChronicChatMessagesQueryDto,
 	CreateChronicCareDto,
 	MedicationAdherenceDto,
+	PreloadedMedsQueryDto,
 } from './dto';
 
 @ApiTags('Client')
@@ -421,18 +428,20 @@ export class ClientController {
 		}
 	}
 
-	@CustomApiResponse(['updated', 'authorize'], {
+	@CustomApiResponse(['updated', 'authorize', 'notfound'], {
 		message: 'Medication confirmed successfully',
 	})
 	@Put('medications/:medicationId/confirm')
 	async confirmMedication(
 		@Param('medicationId') medicationId: string,
+		@Query() query: TodaysMedicationsQueryDto,
 		@GetUser('sub') userId: string,
 	) {
 		try {
 			const response = await this.clientService.confirmMedication(
 				medicationId,
 				userId,
+				query.section,
 			);
 			return new ApiSuccessResponseDto(
 				response,
@@ -730,6 +739,113 @@ export class ClientController {
 			return new ApiSuccessResponseNoData(
 				HttpStatus.OK,
 				'Chat conversation message deleted successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['created', 'authorize'], {
+		type: String,
+		message: 'Medication created successfully',
+	})
+	@Post('medications')
+	async createMedication(
+		@Body() dto: CreateMedicationDto,
+		@GetUser('sub') userId: string,
+	) {
+		try {
+			const response = await this.clientService.createMedication(dto, userId);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.CREATED,
+				'Medication created successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['paginated', 'authorize'], {
+		type: GetSeededMedDto,
+		message: 'Preloaded medications fetched successfully',
+	})
+	@Get('medications/preloaded')
+	async fetchPreloadedMeds(@Query() query: PreloadedMedsQueryDto) {
+		try {
+			const response = await this.clientService.fetchPreloadedMeds(query);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows,
+				query.page || 1,
+				query.pageSize || 10,
+				response.count,
+			);
+			return new ApiSuccessResponseDto(
+				paginated,
+				HttpStatus.OK,
+				'Preloaded medications fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['paginated', 'authorize'], {
+		type: GetFacilityDto,
+		message: 'Facilities fetched successfully',
+	})
+	@Get('facilities')
+	async fetchFacilities(@Query() query: ChronicChatMessagesQueryDto) {
+		try {
+			const response = await this.clientService.fetchFacilities(query);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows,
+				query.page || 1,
+				query.pageSize || 10,
+				response.count,
+			);
+			return new ApiSuccessResponseDto(
+				paginated,
+				HttpStatus.OK,
+				'Facilities fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'authorize'], {
+		type: MedicationDetailDto,
+		message: 'Medication fetched successfully',
+	})
+	@Get('medications/:id')
+	async fetchMedicationById(@Param('id') id: string) {
+		try {
+			const response = await this.clientService.fetchMedicationById(id);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Medication fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['updated', 'authorize'], {
+		message: 'Medication updated successfully',
+	})
+	@Patch('medications/:id')
+	async updateMedication(
+		@Param('id') id: string,
+		@Body() dto: UpdateMedicationDto,
+	) {
+		try {
+			const response = await this.clientService.updateMedication(id, dto);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Medication updated successfully',
 			);
 		} catch (error) {
 			throwError(this.logger, error);

@@ -23,6 +23,7 @@ import {
 	MaxLength,
 	Min,
 } from 'class-validator';
+import { FacilityDto } from '@/features/facilities/dto';
 import { GenderEnum } from '../entities/patient.entity';
 
 export enum AdherenceStatus {
@@ -232,4 +233,9 @@ export class PatientDto {
 	@IsOptional()
 	@IsEnum(AdherenceStatus)
 	adherenceStatus?: AdherenceStatus;
+
+	@ApiResponseProperty({
+		type: FacilityDto,
+	})
+	facility?: FacilityDto;
 }

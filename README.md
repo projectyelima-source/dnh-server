@@ -62,7 +62,7 @@ AppModule
 │   ├── FirebaseModule
 │   └── LoggingModule
 └── FeaturesModule    – domain business logic
-    ├── ClientModule       (patient-facing: AI chat, vitals, medications, adherence)
+    ├── ClientModule       (patient-facing: AI chat, vitals, medications, adherence, facilities)
     ├── DoctorsModule      (clinician-facing: planner, AI-assisted plans)
     ├── PatientsModule
     ├── ChronicConditionsModule
@@ -72,7 +72,9 @@ AppModule
     ├── ConcernsModule
     ├── NotificationsModule
     ├── PharmaciesModule
-    └── DhVectorsModule    (Qdrant vector store management)
+    ├── DhVectorsModule    (Qdrant vector store management)
+    ├── FacilitiesModule   (Facility CRUD)
+    └── ChatModule         (peer-to-peer chat)
 ```
 
 All routes are prefixed `/api/v1`. The root `GET /` is excluded from this prefix and serves as a health-check endpoint.
@@ -161,6 +163,7 @@ Key endpoints:
 - `GET /client/medication-adherence` — medication adherence summary
 - `GET /client/concerns` — paginated patient concerns
 - `GET /client/chats` — paginated AI chat message history
+- `GET /client/facilities` — paginated facility list
 - `DELETE /client/chats/:id` — delete a chat message
 - `DELETE /client/clean/:userId` — purge all patient data (dev/admin use)
 

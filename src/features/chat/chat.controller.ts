@@ -71,6 +71,7 @@ export class ChatController {
 				.addMaxSizeValidator({ maxSize: 50 * 1024 * 1024 })
 				.addFileTypeValidator({
 					fileType: /(jpeg|jpg|png|gif|mp4|mpeg|m4a|mp3|quicktime|webm)$/i,
+					errorMessage: `Unsupported filetype. Supported filetypes are: jpeg, jpg, png, gif, mp4, mpeg, m4a, mp3, quicktime, webm`,
 				})
 				.build(),
 		)

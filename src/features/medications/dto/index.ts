@@ -6,9 +6,14 @@ export {
 export {
 	CreateMedicationDto,
 	MedicationNotificationChoiceDto,
+	UpsertMedicationDto,
 } from './create.dto';
-export { GetMedicationDto } from './get.dto';
-export { MedicationDto } from './medication.dto';
+export { GetMedicationDto, MedicationDetailDto } from './get.dto';
+export {
+	DosingSchedule,
+	MedicationDto,
+	TimeDesignatorDto,
+} from './medication.dto';
 export {
 	MedicationAISchema,
 	type MedicationIdentity,

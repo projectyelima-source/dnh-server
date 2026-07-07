@@ -10,7 +10,7 @@ export class GenericResponseDto {
 	}
 
 	@ApiResponseProperty({
-		example: '019ad9aa-1827-7d7a-90a9-6f63259096ed',
+		example: '6a4cfa319984987431fa98e3',
 	})
 	id: string;
 

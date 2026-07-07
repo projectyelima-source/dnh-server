@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { BaseDH } from '@/common/entities/base-dh.entity';
 import { deleteByPattern } from '@/core/caching/utils';
 import { Personnel } from '@/features/doctors/entities/personnel.entity';
+import { Facility } from '@/features/facilities/entities/facility.entity';
 import { AdherenceStatus } from '../dto';
 import { myEmitter } from '../utils/summary.event';
 import { Sections } from '../utils/summary.util';
@@ -183,6 +184,13 @@ export class Patient extends BaseDH {
 		description: "Patient's timezone in IANA format. Example: 'Africa/Accra'",
 	})
 	timezone: string;
+
+	@Prop({
+		type: ObjectId,
+		ref: 'Facility',
+		description: 'Facility associated with the patient',
+	})
+	facility: Facility;
 
 	@Virtual({
 		get: function (this: Patient) {

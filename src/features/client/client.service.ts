@@ -1,5 +1,9 @@
 import { OpenAIWhisperAudio } from '@langchain/community/document_loaders/fs/openai_whisper_audio';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException,
+} from '@nestjs/common';
 import { InjectConnection } from '@nestjs/mongoose';
 import {
 	addHours,
@@ -41,8 +45,14 @@ import type { CreateAppointmentRequestDto } from '@/features/appointments/appoin
 import { AppointmentsService } from '@/features/appointments/appointments.service';
 import { ChronicConditionsService } from '@/features/chronic-conditions/chronic-conditions.service';
 import { ConcernsService } from '@/features/concerns/concerns.service';
-import { MedicationSection } from '@/features/medications/dto';
+import { FacilitiesService } from '@/features/facilities/facilities.service';
+import {
+	CreateMedicationDto,
+	MedicationSection,
+	UpdateMedicationDto,
+} from '@/features/medications/dto';
 import { MedicationsService } from '@/features/medications/medications.service';
+import { SeededMedsService } from '@/features/medications/seeded-meds/seeded-meds.service';
 import type { Frequency } from '@/features/notifications/dto/notification.dto';
 import { NotificationsService } from '@/features/notifications/notifications.service';
 import { PatientsService } from '@/features/patients/patients.service';
@@ -62,6 +72,7 @@ import {
 	ChronicCareQueryDto,
 	ChronicChatMessagesQueryDto,
 	CreateChronicCareDto,
+	PreloadedMedsQueryDto,
 	UserPayload,
 } from './dto';
 
@@ -88,6 +99,8 @@ export class ClientService {
 		private readonly dhVectorsService: DhVectorsService,
 		private readonly appointmentsService: AppointmentsService,
 		private readonly appointmentRequestsService: AppointmentRequestsService,
+		private readonly seededMedsService: SeededMedsService,
+		private readonly facilitiesService: FacilitiesService,
 	) {
 		this.checkpointModel = this.connection.collection('checkpoints');
 		this.checkpointWritesModel =
@@ -477,26 +490,57 @@ export class ClientService {
 		return doses;
 	}
 
-	async confirmMedication(medicationId: string, userId: string) {
+	async confirmMedication(
+		medicationId: string,
+		userId: string,
+		section: MedicationSection,
+	) {
 		const medication = await this.medicationsService.findById(medicationId);
 
 		if (!medication.frequency || !medication.startDate) {
 			throw new NotFoundException('Medication has no frequency or start date');
 		}
 
-		const baseTime = this.resolveToBeTakenAt(medication.startDate);
-		const repeatEvery = medication.frequency?.repeatEvery || 1;
-		const doses = this.getDailyDoseTimes(baseTime, repeatEvery);
-		const currentSection = this.getSection(new Date());
-
-		const dose = doses.find((d) => d.section === currentSection);
-		if (!dose) {
-			throw new NotFoundException('No dose scheduled for this time of day');
+		const sectionKey = section.toLowerCase() as
+			| 'morning'
+			| 'afternoon'
+			| 'evening';
+		const schedule = medication[sectionKey] as any;
+		if (!schedule?.time) {
+			throw new NotFoundException(`No schedule defined for ${sectionKey}`);
 		}
 
-		const doseTime = dose.time;
+		const { hour, minutes, timeDesignators } = schedule.time;
+		let hours = hour;
+		if (timeDesignators === 'PM' && hours !== 12) hours += 12;
+		if (timeDesignators === 'AM' && hours === 12) hours = 0;
+		const doseTime = set(startOfDay(new Date()), { hours, minutes });
+
+		if (new Date() < doseTime) {
+			throw new BadRequestException(
+				`Cannot confirm ${sectionKey} dose — it's not yet time (${hour}:${String(minutes).padStart(2, '0')} ${timeDesignators})`,
+			);
+		}
+
 		const windowStart = subHours(doseTime, 1);
 		const windowEnd = addHours(doseTime, 1);
+
+		const existing = await this.adherencesService.findAllAdherenceLogsByQuery({
+			query: {
+				userId,
+				targetType: TargetType.MEDICATION,
+				targetName: medication.name,
+				taken: true,
+				takenAt: { $gte: windowStart, $lte: windowEnd },
+			},
+			limit: 1,
+		} as any);
+
+		if (existing.length > 0) {
+			throw new BadRequestException(
+				`${sectionKey} dose for ${medication.name} already confirmed`,
+			);
+		}
 
 		const logId = await this.adherencesService.upsertAdherenceLog(
 			{
@@ -519,35 +563,18 @@ export class ClientService {
 		return { id: logId };
 	}
 	async countTodaysMedications(userId: string) {
-		const medications = await this.medicationsService.findAllByUserId(userId);
-
-		const counts = {
-			morning: 0,
-			afternoon: 0,
-			evening: 0,
-		};
-
-		for (const med of medications) {
-			if (!med.frequency || !med.startDate) continue;
-			if (!this.shouldTakeToday(med.startDate, med.frequency)) continue;
-
-			const baseTime = this.resolveToBeTakenAt(med.startDate);
-			const repeatEvery = med.frequency?.repeatEvery || 1;
-			const doses = this.getDailyDoseTimes(baseTime, repeatEvery);
-
-			for (const dose of doses) {
-				if (dose.section === MedicationSection.MORNING) counts.morning++;
-				else if (dose.section === MedicationSection.AFTERNOON)
-					counts.afternoon++;
-				else counts.evening++;
-			}
-		}
-
-		return counts;
+		return this.medicationsService.countBySchedules(userId);
 	}
 
 	async fetchTodaysMedications(section: MedicationSection, userId: string) {
-		const medications = await this.medicationsService.findAllByUserId(userId);
+		const sectionKey = section.toLowerCase() as
+			| 'morning'
+			| 'afternoon'
+			| 'evening';
+		const medications = await this.medicationsService.findBySchedule(
+			userId,
+			sectionKey,
+		);
 
 		const result: {
 			id: string;
@@ -559,22 +586,21 @@ export class ClientService {
 		}[] = [];
 
 		for (const med of medications) {
-			if (!med.frequency || !med.startDate) continue;
-			if (!this.shouldTakeToday(med.startDate, med.frequency)) continue;
+			const schedule = med[sectionKey] as any;
+			if (!schedule?.time) continue;
 
-			const medicationBaseTime = this.resolveToBeTakenAt(med.startDate);
-			const repeatEvery = med.frequency?.repeatEvery || 1;
-			const doses = this.getDailyDoseTimes(medicationBaseTime, repeatEvery);
-
-			const dose = doses.find((d) => d.section === section);
-			if (!dose) continue;
+			const { hour, minutes, timeDesignators } = schedule.time;
+			let hours = hour;
+			if (timeDesignators === 'PM' && hours !== 12) hours += 12;
+			if (timeDesignators === 'AM' && hours === 12) hours = 0;
+			const toBeTakenAt = set(startOfDay(new Date()), { hours, minutes });
 
 			result.push({
 				id: med._id.toString(),
 				name: med.name,
 				dosage: med.dosage,
 				purpose: med.purpose,
-				toBeTakenAt: dose.time,
+				toBeTakenAt,
 				taken: false,
 			});
 		}
@@ -792,5 +818,38 @@ export class ClientService {
 			await this.doctorNotificationsService.purgeNotifications(patientId);
 		}
 		await this.dhVectorsService.cleanOrphans(userId);
+	}
+
+	async createMedication(dto: CreateMedicationDto, userId: string) {
+		const patient = await this.patientsService.findPatientByUserId(
+			userId,
+			'_id',
+		);
+		return this.medicationsService.create(dto, userId, patient!._id.toString());
+	}
+
+	async updateMedication(id: string, dto: UpdateMedicationDto) {
+		return this.medicationsService.update(id, dto);
+	}
+
+	async fetchMedicationById(id: string) {
+		return this.medicationsService.findById(id);
+	}
+
+	async fetchPreloadedMeds(query: PreloadedMedsQueryDto) {
+		const filter: Record<string, any> = {};
+		if (query.search) {
+			filter.name = {
+				$regex: `^${query.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`,
+				$options: 'i',
+			};
+		}
+		const page = query.page || 1;
+		const pageSize = query.pageSize || 10;
+		return this.seededMedsService.findAllPaginated(filter, page, pageSize);
+	}
+
+	async fetchFacilities(query: ChronicChatMessagesQueryDto) {
+		return this.facilitiesService.findAll(query);
 	}
 }

@@ -33,9 +33,9 @@ AppModule
 ├── CommonModule    – response interceptors (@HandleSuccess, @HandleCreate, etc.)
 ├── CoreModule      – Auth (global guards), DB (Mongoose), Caching (Redis+BullMQ),
 │                     Firebase (Admin SDK), Logging (BetterStack in non-dev)
-└── FeaturesModule  – 11 domain modules: client, doctors, patients,
+└── FeaturesModule  – 13 domain modules: client, doctors, patients,
     chronic-conditions, medications, adherences, vital-histories,
-    concerns, notifications, pharmacies, dh-vectors
+    concerns, notifications, pharmacies, dh-vectors, facilities, chat
 ```
 
 ### Key conventions
@@ -44,8 +44,27 @@ AppModule
 - **Response envelope**: Every controller method uses `@HandleSuccess()` | `@HandleCreate()` | `@HandleUpdate()` | `@HandleSuccessNull()` decorator for consistent `ApiSuccessResponseDto` wrapping. Use `@CustomApiResponse(...)` to combine Swagger + response shaping.
 - **Path alias**: `@/` → `src/`. Import via barrel (`index.ts`) files.
 - **Module ownership**: Each feature module owns its Mongoose schemas. Import the module, not another module's model.
+- **Cross-module service reuse**: To reuse a service from another module, export it from the owning module's `exports` array and import that module in the consuming module. Example: `FacilitiesModule` exports `FacilitiesService`, consumed by `ClientModule` via `fetchFacilities` wrapper in `ClientService`.
 - **Error handling**: Controllers use `throwError(this.logger, error)` from `@/common/utils/responses`.
 - **Controller pattern**: Controllers must inject exactly one service. Cross-module logic is delegated through the owning service, never by injecting multiple services into a controller.
+
+### DTO folder structure
+
+Every feature module has a `dto/` folder with this standard set of files:
+
+```
+features/<module>/dto/
+├── <entity>.dto.ts    # Base class — all fields + @ApiProperty / class-validator / class-transformer decorators
+├── create.dto.ts      # PickType(<Entity>Dto, [...]) — fields required for creation
+├── update.dto.ts      # PartialType(Create<Entity>Dto) — all optional
+├── get.dto.ts         # Response DTOs (composed via IntersectionType with GenericResponseDto) + query param DTOs
+└── index.ts           # Barrel — re-exports every class from the folder
+```
+
+- `<entity>.dto.ts` is the single source of truth; `create.dto.ts` selects from it via `PickType`, `update.dto.ts` wraps `Create<Entity>Dto` via `PartialType`.
+- `get.dto.ts` composes read-only DTOs via `IntersectionType(PickType(..., [...]), GenericResponseDto)` and houses query-parameter DTOs (extending `PaginationRequestDto` where needed).
+- Naming: `<Entity>Dto` (base), `Create<Entity>Dto` (create), `Update<Entity>Dto` (update), `Get<Entity>Dto` (response), `<Plural>QueryDto` (query params).
+- Imports come from the barrel (`index.ts`), never from individual files.
 
 ## Testing
 
@@ -74,15 +93,18 @@ Available at `http://localhost:4815/docs` in dev/staging. Disabled in production
 | `GET /client/medications/:id/adherence?date=2026-06-15` | Monthly adherence logs (one per day) + `adherenceRate`. Uses MongoDB aggregation. |
 | `PUT /client/medications/:id/confirm` | Creates/updates today's adherence log (taken=true). Resolves `toBeTakenAt` from `startDate` time (defaults 8AM if date-only). |
 | `GET /client/medication-adherence?showWeekdays=true` | 30-day adherence rate + optional weekday breakdown. |
+| `GET /client/medications/preloaded` | Paginated preloaded medication reference data with prefix search. |
+| `GET /client/facilities` | Paginated facility list (same query params as `/client/chats`). |
 
 ## Medication entity gotcha
 
-`frequency` is a sub-document (`Frequency` from notifications module: `{ repeatEvery: number, repetitionType: RepetitionType }`), **not a string**. The AI zod schema uses `FrequencySchema` from `@/features/notifications/dto/notification.schema`. The `generateMedicationDescription` service method formats it via `formatFrequency()`.
+`frequency` is a sub-document (`Frequency` from notifications module: `{ repeatEvery: number, repetitionType: RepetitionType }`), **not a string`. The AI zod schema uses `FrequencySchema` from `@/features/notifications/dto/notification.schema`. The `generateMedicationDescription` service method formats it via `formatFrequency()`.
 
 ## Module reference
 
 `src/common/utils/` contains helpers (`CodeGeneratorHelper`, `WeekDeterminantHelper`, `IanaTimezonesHelper`, `ZipHelper`, `CheckpointerUtils`).
 `src/features/dh-vectors/` manages Qdrant vector store (`dh_vectors` collection, 3072d Gemini embeddings).
+`src/features/facilities/` manages Facility CRUD. Exports `FacilitiesService` for cross-module use (e.g. `ClientModule`).
 
 ## Chat module
 

@@ -1,11 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Expose, Type } from 'class-transformer';
 import {
 	IsArray,
 	IsDate,
 	IsEmail,
 	IsEnum,
+	IsMongoId,
 	IsNotEmpty,
+	IsOptional,
 	IsString,
 	MinLength,
 } from 'class-validator';
@@ -88,6 +90,18 @@ export class OnboardDto {
 	@IsString({ each: true })
 	@IsNotEmpty()
 	chronicConditions: string[];
+
+	@ApiPropertyOptional({
+		description:
+			'Facility ID (MongoDB ObjectId) to associate with this patient',
+		example: '664b7f8e2c2a1e4b8f1d2c3a4',
+		name: 'facilityId',
+	})
+	@IsOptional()
+	@IsString()
+	@IsMongoId()
+	@Expose({ name: 'facilityId' })
+	facility?: string;
 }
 
 export class GoogleLoginDto {

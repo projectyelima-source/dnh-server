@@ -4,6 +4,7 @@ import { AppointmentsModule } from '../appointments/appointments.module';
 import { ChronicConditionsModule } from '../chronic-conditions/chronic-conditions.module';
 import { ConcernsModule } from '../concerns/concerns.module';
 import { DhVectorsModule } from '../dh-vectors/dh-vectors.module';
+import { FacilitiesModule } from '../facilities/facilities.module';
 import { MedicationsModule } from '../medications/medications.module';
 import { PatientsModule } from '../patients/patients.module';
 import { VitalHistoriesModule } from '../vital-histories/vital-histories.module';
@@ -24,6 +25,7 @@ import { ClientService } from './client.service';
 		AdherencesModule,
 		VitalHistoriesModule,
 		AppointmentsModule,
+		FacilitiesModule,
 	],
 })
 export class ClientModule {}

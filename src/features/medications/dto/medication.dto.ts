@@ -1,8 +1,13 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+	ApiProperty,
+	ApiPropertyOptional,
+	ApiResponseProperty,
+} from '@nestjs/swagger';
 import { Expose, Type } from 'class-transformer';
 import {
 	IsArray,
 	IsDateString,
+	IsEnum,
 	IsMongoId,
 	IsNotEmpty,
 	IsNumber,
@@ -12,6 +17,52 @@ import {
 	ValidateNested,
 } from 'class-validator';
 import { Frequency } from '@/features/notifications/dto/notification.dto';
+
+export class TimeDesignatorDto {
+	@ApiProperty({ description: 'Hour (0-23)', example: 8 })
+	@IsNumber()
+	hour: number;
+
+	@ApiProperty({ description: 'Minutes (0-59)', example: 30 })
+	@IsNumber()
+	minutes: number;
+
+	@ApiProperty({
+		description: 'Time designator',
+		enum: ['AM', 'PM'],
+		example: 'AM',
+	})
+	@IsEnum(['AM', 'PM'])
+	timeDesignators: 'AM' | 'PM';
+}
+
+class DosingQuantityDto {
+	@ApiProperty({ description: 'Quantity value', example: 1 })
+	@IsNumber()
+	value: number;
+
+	@ApiProperty({ description: 'Quantity unit', example: 'tablet' })
+	@IsString()
+	@IsNotEmpty()
+	unit: string;
+}
+
+export class DosingSchedule {
+	@ApiProperty({ description: 'Time of day', type: TimeDesignatorDto })
+	@ValidateNested()
+	@Type(() => TimeDesignatorDto)
+	@IsNotEmpty()
+	time: TimeDesignatorDto;
+
+	@ApiProperty({ description: 'Dosage quantity', type: DosingQuantityDto })
+	@ValidateNested()
+	@Type(() => DosingQuantityDto)
+	@IsNotEmpty()
+	quantity: DosingQuantityDto;
+
+	@ApiResponseProperty({ example: '678fa53f3a0ba70822aa3555' })
+	notification?: string;
+}
 
 export class MedicationDto {
 	@ApiProperty({
@@ -137,4 +188,39 @@ export class MedicationDto {
 	@IsArray()
 	@IsString({ each: true })
 	sideEffects?: string[];
+
+	@ApiProperty({
+		description: 'Notes about the medication',
+		example: 'Take with food',
+	})
+	@IsString()
+	@IsNotEmpty()
+	notes: string;
+
+	@ApiPropertyOptional({
+		description: 'Morning dosing schedule',
+		type: DosingSchedule,
+	})
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => DosingSchedule)
+	morning?: DosingSchedule;
+
+	@ApiPropertyOptional({
+		description: 'Afternoon dosing schedule',
+		type: DosingSchedule,
+	})
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => DosingSchedule)
+	afternoon?: DosingSchedule;
+
+	@ApiPropertyOptional({
+		description: 'Evening dosing schedule',
+		type: DosingSchedule,
+	})
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => DosingSchedule)
+	evening?: DosingSchedule;
 }

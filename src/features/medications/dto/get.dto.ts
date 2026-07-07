@@ -14,3 +14,15 @@ export class GetMedicationDto extends IntersectionType(
 	]),
 	PickType(GenericResponseDto, ['id']),
 ) {}
+
+export class MedicationDetailDto extends IntersectionType(
+	PickType(MedicationDto, [
+		'name',
+		'dosage',
+		'notes',
+		'morning',
+		'afternoon',
+		'evening',
+	]),
+	GenericResponseDto,
+) {}

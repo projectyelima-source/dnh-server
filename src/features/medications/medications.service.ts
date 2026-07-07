@@ -1,10 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { setHours, setMinutes, startOfDay } from 'date-fns';
 import { Model, Types } from 'mongoose';
 import { v7 as uuidv7 } from 'uuid';
 import { AdherencesService } from '@/features/adherences/adherences.service';
+import { TargetType } from '@/features/adherences/dto/target-type.enum';
 import { UpdateAdherenceLogQueryDto } from '@/features/adherences/dto/update.dto';
-import type { Frequency } from '@/features/notifications/dto/notification.dto';
+import {
+	type Frequency,
+	NotificationChannel,
+	NotificationPriority,
+	NotificationTone,
+	NotificationType,
+	RepetitionType,
+} from '@/features/notifications/dto/notification.dto';
+import { NotificationsService } from '@/features/notifications/notifications.service';
 import { flattenMeta } from '../../common/entities/base-dh.entity';
 import { DhVectorsService } from '../dh-vectors/dh-vectors.service';
 import { DHDocumentType } from '../dh-vectors/dto';
@@ -13,6 +23,7 @@ import {
 	MedicationNotificationChoiceDto,
 	MedicationQueryFilter,
 	UpdateMedicationDto,
+	UpsertMedicationDto,
 } from './dto';
 import { Medication } from './entities/medication.entity';
 
@@ -22,15 +33,86 @@ export class MedicationsService {
 		@InjectModel(Medication.name) private medicationModel: Model<Medication>,
 		private readonly dhVectorsService: DhVectorsService,
 		private readonly adherencesService: AdherencesService,
+		private readonly notificationsService: NotificationsService,
 	) {}
 
-	create(_createMedicationDto: CreateMedicationDto) {
-		return 'This action adds a new medication';
+	private buildScheduleTime(time: {
+		hour: number;
+		minutes: number;
+		timeDesignators: 'AM' | 'PM';
+	}): Date {
+		let hours = time.hour;
+		if (time.timeDesignators === 'PM' && hours !== 12) hours += 12;
+		if (time.timeDesignators === 'AM' && hours === 12) hours = 0;
+		return setHours(setMinutes(startOfDay(new Date()), time.minutes), hours);
+	}
+
+	async create(dto: CreateMedicationDto, userId: string, patient: string) {
+		console.log('dto', dto);
+		console.log('userid', userId);
+		const schedules = (
+			[
+				['morning', dto.morning],
+				['afternoon', dto.afternoon],
+				['evening', dto.evening],
+			] as const
+		).filter(([, s]) => s) as [
+			'morning' | 'afternoon' | 'evening',
+			NonNullable<CreateMedicationDto['morning']>,
+		][];
+
+		for (const [, schedule] of schedules) {
+			const notificationId = await this.notificationsService.create({
+				notificationType: NotificationType.REMINDER,
+				patient,
+				userId,
+				startDate: this.buildScheduleTime(schedule.time),
+				tone: NotificationTone.FRIENDLY,
+				targetType: TargetType.MEDICATION,
+				characterLimit: 120,
+				targetName: dto.name,
+				channel: NotificationChannel.PUSH,
+				goal: `Take ${dto.name}`,
+				priority: NotificationPriority.HIGH,
+				frequency: {
+					repeatEvery: 1,
+					repetitionType: RepetitionType.DAILY,
+				},
+				timezone: 'Africa/Accra',
+			});
+			(schedule as any).notification = notificationId.toString();
+		}
+
+		const firstSchedule = schedules[0]?.[1];
+		const startDate = firstSchedule
+			? this.buildScheduleTime(firstSchedule.time)
+			: new Date();
+		const repeatEvery = schedules.length || 1;
+
+		const qdrantId = uuidv7();
+		const medication = await this.medicationModel.create({
+			userId,
+			patient: patient as any,
+			...(dto as any),
+			startDate,
+			frequency: { repeatEvery, repetitionType: RepetitionType.DAILY },
+		});
+
+		const summary = this.generateMedicationDescription(medication);
+		await this.dhVectorsService.create({
+			qdrantId,
+			userId,
+			patient,
+			documentType: DHDocumentType.MEDICATION,
+			documentId: medication._id.toString(),
+			summary,
+		});
+		return medication._id.toString();
 	}
 
 	async upsertMedication(
 		filters: Record<string, any>,
-		dto: CreateMedicationDto,
+		dto: UpsertMedicationDto,
 	) {
 		const qdrantId = uuidv7();
 		const searchMedication = await this.dhVectorsService.findAll({
@@ -170,8 +252,84 @@ export class MedicationsService {
 		return `The user of ${userId} selected choice ${dto.choice}`;
 	}
 
-	update(id: number, _updateMedicationDto: UpdateMedicationDto) {
-		return `This action updates a #${id} medication`;
+	async update(id: string, dto: UpdateMedicationDto) {
+		const medication = await this.medicationModel.findById(id);
+		if (!medication) {
+			throw new NotFoundException('Medication not found');
+		}
+
+		if (dto.dosage !== undefined) medication.dosage = dto.dosage;
+		if (dto.notes !== undefined) medication.notes = dto.notes;
+
+		const scheduleKeys = ['morning', 'afternoon', 'evening'] as const;
+		const updatedSchedules: Array<{
+			key: (typeof scheduleKeys)[number];
+			schedule: NonNullable<UpdateMedicationDto['morning']>;
+		}> = [];
+
+		for (const key of scheduleKeys) {
+			const dtoSchedule = dto[key];
+			if (!dtoSchedule) continue;
+
+			const existingSchedule = (medication as any)[key];
+
+			if (existingSchedule?.notification) {
+				await this.notificationsService.update(
+					existingSchedule.notification.toString(),
+					{
+						startDate: this.buildScheduleTime(dtoSchedule.time),
+					},
+				);
+			} else {
+				const notificationId = await this.notificationsService.create({
+					userId: medication.userId,
+					notificationType: NotificationType.REMINDER,
+					patient: medication.patient as any,
+					startDate: this.buildScheduleTime(dtoSchedule.time),
+					tone: NotificationTone.FRIENDLY,
+					targetType: TargetType.MEDICATION,
+					characterLimit: 120,
+					targetName: medication.name,
+					channel: NotificationChannel.PUSH,
+					goal: `Take ${medication.name}`,
+					priority: NotificationPriority.HIGH,
+					frequency: {
+						repeatEvery: 1,
+						repetitionType: RepetitionType.DAILY,
+					},
+					timezone: 'Africa/Accra',
+				});
+				(dtoSchedule as any).notification = notificationId.toString();
+			}
+
+			updatedSchedules.push({ key, schedule: dtoSchedule });
+		}
+
+		if (updatedSchedules.length > 0) {
+			medication.frequency = {
+				repeatEvery: updatedSchedules.length,
+				repetitionType: RepetitionType.DAILY,
+			};
+		}
+
+		for (const { key, schedule } of updatedSchedules) {
+			(medication as any)[key] = schedule;
+		}
+
+		await medication.save();
+
+		const summary = this.generateMedicationDescription(medication);
+
+		await this.dhVectorsService.create({
+			qdrantId: medication.qdrantId,
+			userId: medication.userId,
+			patient: medication.patient as any,
+			documentType: DHDocumentType.MEDICATION,
+			documentId: medication._id.toString(),
+			summary,
+		});
+
+		return medication._id.toString();
 	}
 
 	remove(id: number) {
@@ -208,6 +366,46 @@ export class MedicationsService {
 			.find({ userId })
 			.select(['name', 'dosage', 'purpose', 'startDate', 'frequency'])
 			.lean();
+	}
+
+	async findBySchedule(
+		userId: string,
+		section: 'morning' | 'afternoon' | 'evening',
+	) {
+		return this.medicationModel
+			.find({ userId, [section]: { $exists: true, $ne: null } })
+			.select([
+				'_id',
+				'name',
+				'dosage',
+				'purpose',
+				'morning',
+				'afternoon',
+				'evening',
+			])
+			.lean();
+	}
+
+	async countBySchedules(userId: string) {
+		const result = await this.medicationModel.aggregate([
+			{ $match: { userId } },
+			{
+				$group: {
+					_id: null,
+					morning: {
+						$sum: { $cond: [{ $ifNull: ['$morning', false] }, 1, 0] },
+					},
+					afternoon: {
+						$sum: { $cond: [{ $ifNull: ['$afternoon', false] }, 1, 0] },
+					},
+					evening: {
+						$sum: { $cond: [{ $ifNull: ['$evening', false] }, 1, 0] },
+					},
+				},
+			},
+		]);
+		delete result[0]._id;
+		return result[0] ?? { morning: 0, afternoon: 0, evening: 0 };
 	}
 
 	async countByUserId(userId: string): Promise<number> {
