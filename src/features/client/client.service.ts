@@ -4,6 +4,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectConnection } from '@nestjs/mongoose';
 import {
 	addHours,
@@ -102,6 +103,7 @@ export class ClientService {
 		private readonly appointmentRequestsService: AppointmentRequestsService,
 		private readonly seededMedsService: SeededMedsService,
 		private readonly facilitiesService: FacilitiesService,
+		private readonly eventEmitter: EventEmitter2,
 	) {
 		this.checkpointModel = this.connection.collection('checkpoints');
 		this.checkpointWritesModel =
@@ -811,13 +813,18 @@ export class ClientService {
 		await this.concernsService.removeByUserId(userId);
 		await this.clientAIChatService.removeByUserId(userId);
 		await this.patientsService.removeSummariesByUserId(userId);
-		// await this.firebaseService.deleteFolder(
-		// 	'chronic_care_chat_audios/' + userId,
-		// );
+		await this.firebaseService.deleteFolder(
+			'chronic_care_chat_audios/' + userId,
+		);
 
 		if (patientId) {
 			await this.doctorNotificationsService.purgeNotifications(patientId);
+			await this.appointmentsService.removeByPatientId(patientId);
+			await this.appointmentRequestsService.removeByPatientId(patientId);
+			this.eventEmitter.emit('patient.purge.sessions', { patientId });
+			this.eventEmitter.emit('patient.purge.plans', { patientId });
 		}
+		this.eventEmitter.emit('patient.purge.chat', { userId });
 		await this.dhVectorsService.cleanOrphans(userId);
 	}
 

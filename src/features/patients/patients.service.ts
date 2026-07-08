@@ -280,6 +280,10 @@ export class PatientsService {
 			findFilter.pharmaciesVisited = query.personnelId;
 		}
 
+		if (query.facility) {
+			findFilter.facility = query.facility;
+		}
+
 		if (query.filterBy) {
 			switch (query.filterBy) {
 				case FilterBy.HYPERTENSION:
@@ -306,7 +310,6 @@ export class PatientsService {
 		}
 
 		searchFilter = { ...searchFilter, ...findFilter };
-		console.log;
 
 		const patients = await this.patientModel
 			.find({ ...searchFilter })
@@ -325,8 +328,13 @@ export class PatientsService {
 	async findAllNoPaginate(query: FilterPatientsNoPaginateDto) {
 		const { searchFilter } = generateFilter(query);
 
+		const filter: Record<string, any> = { ...searchFilter };
+		if (query.facility) {
+			filter.facility = query.facility;
+		}
+
 		const patients = await this.patientModel
-			.find({ ...searchFilter })
+			.find(filter)
 			.select('userId name patientCode');
 
 		return patients;

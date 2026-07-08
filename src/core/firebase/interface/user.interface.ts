@@ -10,6 +10,7 @@ export interface IUserPayload {
 	exp?: number;
 	email?: string;
 	email_verified?: boolean;
+	facility?: string;
 	firebase?: {
 		identities: {
 			email: string[];

@@ -121,9 +121,13 @@ export class FilterPatientsDto extends PaginationRequestDto {
 	@IsOptional()
 	@IsEnum(FilterBy)
 	filterBy?: FilterBy;
+
+	facility?: string;
 }
 
 export class FilterPatientsNoPaginateDto extends PickType(
 	PaginationRequestDto,
 	['search', 'searchFields'],
-) {}
+) {
+	facility?: string;
+}

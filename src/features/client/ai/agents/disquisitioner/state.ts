@@ -12,7 +12,7 @@ export enum ConversationScope {
 export const ConversationScopes = [
 	ConversationScope.GENERAL,
 	// ConversationScope.CHRONIC_CONDITIONS,
-	ConversationScope.MEDICATIONS,
+	// ConversationScope.MEDICATIONS,
 	ConversationScope.VITAL_HISTORY,
 	// ConversationScope.CONCERNS,
 	ConversationScope.END,

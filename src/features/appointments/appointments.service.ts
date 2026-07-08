@@ -225,6 +225,10 @@ export class AppointmentsService {
 		return appointment.save();
 	}
 
+	async removeByPatientId(patientId: string) {
+		return this.appointmentModel.deleteMany({ patient: patientId });
+	}
+
 	remove(id: number) {
 		return `This action removes a #${id} appointment`;
 	}

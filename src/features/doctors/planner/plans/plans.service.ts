@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { generateFilter } from '@/common/factory';
@@ -68,6 +69,15 @@ export class PlansService {
 			throw new NotFoundException(`Plan not found`);
 		}
 		return plan._id;
+	}
+
+	@OnEvent('patient.purge.plans')
+	private async handlePurgePatient(payload: { patientId: string }) {
+		await this.removeByPatientId(payload.patientId);
+	}
+
+	async removeByPatientId(patientId: string) {
+		return this.planModel.deleteMany({ patient: patientId });
 	}
 
 	async remove(patientId: string, id: string) {

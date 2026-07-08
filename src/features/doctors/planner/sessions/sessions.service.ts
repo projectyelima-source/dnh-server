@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 // import nlp from 'compromise';
 import { format } from 'date-fns';
@@ -70,6 +71,16 @@ export class SessionsService {
 			throw new NotFoundException(`Session not found`);
 		}
 		return session._id;
+	}
+
+	@OnEvent('patient.purge.sessions')
+	private async handlePurgePatient(payload: { patientId: string }) {
+		await this.removeByPatientId(payload.patientId);
+	}
+
+	async removeByPatientId(patientId: string) {
+		await this.plannerSessionModel.deleteMany({ patient: patientId });
+		await this.plannerChatModel.deleteMany({ patient: patientId });
 	}
 
 	async remove(patientId: string, id: string) {

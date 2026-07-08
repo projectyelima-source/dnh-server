@@ -106,6 +106,21 @@ Available at `http://localhost:4815/docs` in dev/staging. Disabled in production
 `src/features/dh-vectors/` manages Qdrant vector store (`dh_vectors` collection, 3072d Gemini embeddings).
 `src/features/facilities/` manages Facility CRUD. Exports `FacilitiesService` for cross-module use (e.g. `ClientModule`).
 
+## NestJS EventEmitter2 convention
+
+`EventEmitterModule.forRoot()` is registered globally in `CoreModule` — no per-module import needed.
+
+- **Emit**: `this.eventEmitter.emit('some.event.name', { key: value })` — always pass a **single object payload** with named properties.
+- **Listen**: `@OnEvent('some.event.name')` on a method of an `@Injectable()` class. The handler receives the same object payload.
+- **Canonical example** — `PlannerAiService.persistState` at `src/features/doctors/planner/planner-ai.service.ts:262`:
+  ```ts
+  @OnEvent('planner.state.persist')
+  async persistState(payload: { humanMessage: string; response: string; ... }) {
+    // destructure from payload, never positional args
+  }
+  ```
+  Callers emit with `this.eventEmitter.emit('planner.state.persist', { humanMessage, response, ... })`.
+
 ## Chat module
 
 The peer-to-peer chat system lives in `src/features/chat/`. Full context (schemas, events, auth, gotchas) is in [`docs/chat-backend.md`](docs/chat-backend.md). API contracts for frontend consumers are in [`docs/chat-client.md`](docs/chat-client.md) (patient) and [`docs/chat-hcp.md`](docs/chat-hcp.md) (HCP). Read the backend doc before making any chat-related changes.

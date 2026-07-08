@@ -89,8 +89,12 @@ export class HcpController {
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
 	@Get('patients')
-	async findAllPatients(@Query() query: FilterPatientsDto) {
+	async findAllPatients(
+		@Query() query: FilterPatientsDto,
+		@GetUser('facility') facility?: string,
+	) {
 		try {
+			if (facility) query.facility = facility;
 			const response = await this.hcpService.findAllPatients(query);
 			const paginated = new PaginatedDataResponseDto(
 				response.rows,
@@ -136,8 +140,12 @@ export class HcpController {
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
 	@Get('patients/no-paginate')
-	async findAllPatientsNoPaginate(@Query() query: FilterPatientsNoPaginateDto) {
+	async findAllPatientsNoPaginate(
+		@Query() query: FilterPatientsNoPaginateDto,
+		@GetUser('facility') facility?: string,
+	) {
 		try {
+			if (facility) query.facility = facility;
 			const response = await this.hcpService.findAllPatientsNoPaginate(query);
 			return new ApiSuccessResponseDto(
 				response,

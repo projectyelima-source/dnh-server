@@ -49,6 +49,10 @@ export class AppointmentRequestsService {
 		});
 	}
 
+	async removeByPatientId(patientId: string) {
+		return this.appointmentRequestModel.deleteMany({ patient: patientId });
+	}
+
 	remove(id: string) {
 		return this.appointmentRequestModel.findByIdAndDelete(id);
 	}

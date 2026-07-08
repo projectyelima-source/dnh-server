@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { generateFilter } from '@/common/factory';
@@ -146,6 +147,16 @@ export class ChatService {
 		const count = await this.messageModel.countDocuments({ roomId });
 
 		return { rows, count };
+	}
+
+	@OnEvent('patient.purge.chat')
+	private async handlePurgePatient(payload: { userId: string }) {
+		await this.removeByUserId(payload.userId);
+	}
+
+	async removeByUserId(userId: string) {
+		await this.roomModel.deleteMany({ participants: userId });
+		await this.messageModel.deleteMany({ senderId: userId });
 	}
 
 	async findRoomById(roomId: string) {

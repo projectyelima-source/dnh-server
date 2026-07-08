@@ -21,4 +21,5 @@ type Payload =
 	| 'email'
 	| 'email_verified'
 	| 'firebase'
-	| 'uid';
+	| 'uid'
+	| 'facility';
