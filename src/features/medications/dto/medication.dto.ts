@@ -189,7 +189,7 @@ export class MedicationDto {
 	@IsString({ each: true })
 	sideEffects?: string[];
 
-	@ApiProperty({
+	@ApiPropertyOptional({
 		description: 'Notes about the medication',
 		example: 'Take with food',
 	})
