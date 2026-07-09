@@ -194,8 +194,8 @@ export class MedicationDto {
 		example: 'Take with food',
 	})
 	@IsString()
-	@IsNotEmpty()
-	notes: string;
+	@IsOptional()
+	notes?: string;
 
 	@ApiPropertyOptional({
 		description: 'Morning dosing schedule',

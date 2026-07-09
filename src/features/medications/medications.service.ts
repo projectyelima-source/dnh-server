@@ -48,8 +48,6 @@ export class MedicationsService {
 	}
 
 	async create(dto: CreateMedicationDto, userId: string, patient: string) {
-		console.log('dto', dto);
-		console.log('userid', userId);
 		const schedules = (
 			[
 				['morning', dto.morning],
