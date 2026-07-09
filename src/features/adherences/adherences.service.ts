@@ -258,30 +258,31 @@ export class AdherencesService {
 	}
 
 	async aggregateMedicationAdherence(userId: string) {
-		const thirtyDaysAgo = subDays(new Date(), 30);
+		const sevenDaysAgo = subDays(new Date(), 7);
 
 		const result = await this.adherenceLogModel.aggregate([
 			{
 				$match: {
 					userId,
 					targetType: TargetType.MEDICATION,
-					takenAt: { $gte: thirtyDaysAgo },
+					taken: true,
+					takenAt: { $gte: sevenDaysAgo },
 				},
 			},
 			{
 				$group: {
-					_id: null,
-					total: { $sum: 1 },
-					taken: { $sum: { $cond: ['$taken', 1, 0] } },
+					_id: {
+						$dateToString: { format: '%Y-%m-%d', date: '$takenAt' },
+					},
 				},
+			},
+			{
+				$count: 'uniqueDays',
 			},
 		]);
 
-		if (!result.length) {
-			return 0;
-		}
-
-		return Math.round((result[0].taken / result[0].total) * 100);
+		const uniqueDays = result.length ? result[0].uniqueDays : 0;
+		return Math.round((uniqueDays / 7) * 100);
 	}
 
 	async aggregateMedicationTakenByWeek(userId: string) {
@@ -324,7 +325,7 @@ export class AdherencesService {
 			const dateKey = date.toISOString().slice(0, 10);
 
 			let taken: boolean | null;
-			if (dateKey >= todayKey) {
+			if (dateKey > todayKey) {
 				taken = null;
 			} else {
 				taken = takenDates.has(dateKey);
