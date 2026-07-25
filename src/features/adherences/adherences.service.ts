@@ -19,7 +19,10 @@ import {
 	UpdateAdherenceDto,
 } from './dto';
 import { AdherenceLog, TargetType } from './entities/adherence-log.entity';
-import { AdherencePattern } from './entities/adherence-pattern.entity';
+import {
+	AdherencePattern,
+	PatternTargetType,
+} from './entities/adherence-pattern.entity';
 
 @Injectable()
 export class AdherencesService {
@@ -393,6 +396,22 @@ export class AdherencesService {
 
 	async removeLogsByUserId(userId: string) {
 		return this.adherenceLogModel.deleteMany({ userId });
+	}
+
+	async removeLogsByTargetName(userId: string, targetName: string) {
+		return this.adherenceLogModel.deleteMany({
+			userId,
+			targetType: TargetType.MEDICATION,
+			targetName,
+		});
+	}
+
+	async removePatternsByTargetName(userId: string, targetName: string) {
+		return this.adherencePatternModel.deleteMany({
+			userId,
+			targetType: PatternTargetType.MEDICATION,
+			targetName,
+		});
 	}
 
 	async removePatternsByUserId(userId: string) {

@@ -33,7 +33,7 @@ export class TelemetryInterceptor implements NestInterceptor {
 		return next.handle().pipe(
 			tap(() =>
 				this.logger.debug(
-					`Request completed  ${route.path} - ${response.statusCode}`,
+					`Request completed  ${method} ${route.path} - ${response.statusCode}`,
 					{
 						duration: `${Date.now() - beforeRequest} ms`,
 						statusCode: response.statusCode,

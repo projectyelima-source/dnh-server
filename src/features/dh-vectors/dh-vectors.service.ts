@@ -107,6 +107,18 @@ export class DhVectorsService implements OnModuleInit {
 		});
 	}
 
+	async deleteByDocumentId(documentId: string) {
+		try {
+			await this.qdrant.delete('dh_vectors', {
+				filter: {
+					must: [{ key: 'documentId', match: { value: documentId } }],
+				},
+			});
+		} catch (e) {
+			this.logger.error('Error deleting dh vector by documentId', e);
+		}
+	}
+
 	async cleanOrphans(userId: string) {
 		try {
 			await this.qdrant.delete('dh_vectors', {
@@ -160,7 +172,7 @@ export class DhVectorsService implements OnModuleInit {
 		const info = await this.qdrant.getCollection(collectionName);
 		const existingIndexes = Object.keys(info.payload_schema || {});
 
-		const fieldsToIndex = ['userId', 'patient', 'documentType'];
+		const fieldsToIndex = ['userId', 'patient', 'documentType', 'documentId'];
 
 		for (const field of fieldsToIndex) {
 			try {

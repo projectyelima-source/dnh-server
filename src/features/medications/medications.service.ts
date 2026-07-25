@@ -330,8 +330,40 @@ export class MedicationsService {
 		return medication._id.toString();
 	}
 
-	remove(id: number) {
-		return `This action removes a #${id} medication`;
+	async remove(id: string) {
+		const medication = await this.medicationModel.findById(id);
+		if (!medication) {
+			throw new NotFoundException('Medication not found');
+		}
+
+		const schedules = ['morning', 'afternoon', 'evening'] as const;
+		for (const section of schedules) {
+			const schedule = (medication as any)[section] as
+				| { notification?: any }
+				| undefined;
+			if (schedule?.notification) {
+				try {
+					await this.notificationsService.remove(
+						schedule.notification.toString(),
+					);
+				} catch {
+					// notification may already be deleted
+				}
+			}
+		}
+
+		await this.adherencesService.removeLogsByTargetName(
+			medication.userId,
+			medication.name,
+		);
+		await this.adherencesService.removePatternsByTargetName(
+			medication.userId,
+			medication.name,
+		);
+
+		await this.dhVectorsService.deleteByDocumentId(medication._id.toString());
+
+		await this.medicationModel.findByIdAndDelete(id);
 	}
 
 	async findByUserId(userId: string, offset: number, limit: number) {

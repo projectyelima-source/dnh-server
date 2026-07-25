@@ -836,6 +836,10 @@ export class ClientService {
 		return this.medicationsService.create(dto, userId, patient!._id.toString());
 	}
 
+	async deleteMedication(id: string) {
+		return this.medicationsService.remove(id);
+	}
+
 	async updateMedication(id: string, dto: UpdateMedicationDto) {
 		return this.medicationsService.update(id, dto);
 	}

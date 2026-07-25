@@ -854,4 +854,20 @@ export class ClientController {
 			throwError(this.logger, error);
 		}
 	}
+
+	@CustomApiResponse(['successNull', 'authorize'], {
+		message: 'Medication deleted successfully',
+	})
+	@Delete('medications/:id')
+	async deleteMedication(@Param('id') id: string) {
+		try {
+			await this.clientService.deleteMedication(id);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Medication deleted successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
 }
