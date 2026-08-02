@@ -42,7 +42,13 @@ import {
 	GetAppointmentsQueryDto,
 } from '@/features/appointments/dto';
 import { GetChronicConditionDto } from '@/features/chronic-conditions/dto';
-import { GetConcernDto } from '@/features/concerns/dto';
+import {
+	AddSymptomsDto,
+	GetConcernDto,
+	GetSymptomDto,
+	GetSymptomsQueryDto,
+	UpdateConcernDto,
+} from '@/features/concerns/dto';
 import {
 	GetFacilitiesQueryDto,
 	GetFacilityDto,
@@ -865,6 +871,111 @@ export class ClientController {
 			return new ApiSuccessResponseNoData(
 				HttpStatus.OK,
 				'Medication deleted successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['created', 'authorize'], {
+		message: 'Symptom created successfully',
+	})
+	@Post('symptoms')
+	async createSymptom(
+		@GetUser('sub') userId: string,
+		@Body() dto: AddSymptomsDto,
+	) {
+		try {
+			const response = await this.clientService.createSymptom(userId, dto);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.CREATED,
+				'Symptom created successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['paginated', 'authorize'], {
+		type: GetSymptomDto,
+		message: 'Symptoms fetched successfully',
+	})
+	@Get('symptoms')
+	async fetchSymptoms(
+		@GetUser('sub') userId: string,
+		@Query() query: GetSymptomsQueryDto,
+	) {
+		try {
+			const response = await this.clientService.fetchSymptoms(userId, query);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows,
+				query.page || 1,
+				query.pageSize || 10,
+				response.count,
+			);
+			return new ApiSuccessResponseDto(
+				paginated,
+				HttpStatus.OK,
+				'Symptoms fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound', 'authorize'], {
+		type: GetSymptomDto,
+		message: 'Symptom fetched successfully',
+	})
+	@Get('symptoms/:id')
+	async fetchSymptomById(
+		@GetUser('sub') userId: string,
+		@Param('id') id: string,
+	) {
+		try {
+			const response = await this.clientService.fetchSymptomById(id, userId);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Symptom fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['updated', 'notfound', 'authorize'], {
+		message: 'Symptom updated successfully',
+	})
+	@Patch('symptoms/:id')
+	async updateSymptom(
+		@GetUser('sub') userId: string,
+		@Param('id') id: string,
+		@Body() dto: UpdateConcernDto,
+	) {
+		try {
+			const response = await this.clientService.updateSymptom(id, userId, dto);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Symptom updated successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['successNull', 'notfound', 'authorize'], {
+		message: 'Symptom deleted successfully',
+	})
+	@Delete('symptoms/:id')
+	async deleteSymptom(@GetUser('sub') userId: string, @Param('id') id: string) {
+		try {
+			await this.clientService.deleteSymptom(id, userId);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Symptom deleted successfully',
 			);
 		} catch (error) {
 			throwError(this.logger, error);

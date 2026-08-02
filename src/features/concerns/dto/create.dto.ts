@@ -1,3 +1,6 @@
+import { PickType } from '@nestjs/swagger';
+import { ConcernDto } from './concern.dto';
+
 export const ConcernNameTypeMap: Record<string, string> = {
 	symptoms: 'Symptoms',
 	sideEffect: 'Side Effect',
@@ -7,3 +10,5 @@ export const ConcernNameTypeMap: Record<string, string> = {
 };
 
 export class CreateConcernDto {}
+
+export class AddSymptomsDto extends PickType(ConcernDto, ['description']) {}

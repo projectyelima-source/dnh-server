@@ -1,8 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 import {
-	ArrayNotEmpty,
-	IsArray,
 	IsBoolean,
 	IsDateString,
 	IsEnum,
@@ -51,14 +49,12 @@ export class ConcernDto {
 	concernType: string;
 
 	@ApiProperty({
-		description: 'Descriptions of the concern',
-		example: ['Headache', 'Nausea'],
-		type: [String],
+		description: 'Description of the concern',
+		example: 'Headache',
 	})
-	@IsArray()
-	@ArrayNotEmpty()
-	@IsString({ each: true })
-	description: string[];
+	@IsString()
+	@IsNotEmpty()
+	description: string;
 
 	@ApiProperty({
 		description: 'Severity of the concern',

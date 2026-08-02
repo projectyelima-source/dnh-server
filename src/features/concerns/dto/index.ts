@@ -16,6 +16,10 @@ export type {
 	ConcernOverview,
 	ConcernTypeInsights,
 } from './concern-insights.dto';
-export { ConcernNameTypeMap, CreateConcernDto } from './create.dto';
-export { GetConcernDto } from './get.dto';
+export {
+	AddSymptomsDto,
+	ConcernNameTypeMap,
+	CreateConcernDto,
+} from './create.dto';
+export { GetConcernDto, GetSymptomDto, GetSymptomsQueryDto } from './get.dto';
 export { UpdateConcernDto } from './update.dto';

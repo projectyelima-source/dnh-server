@@ -3,7 +3,7 @@ import {
 	IntersectionType,
 	PickType,
 } from '@nestjs/swagger';
-import { GenericResponseDto } from '@/common/dto';
+import { GenericResponseDto, PaginationRequestDto } from '@/common/dto';
 import { ConcernDto } from './concern.dto';
 
 export class GetConcernDto extends IntersectionType(
@@ -16,3 +16,13 @@ export class GetConcernDto extends IntersectionType(
 	})
 	concernName: string;
 }
+
+export class GetSymptomDto extends IntersectionType(
+	PickType(ConcernDto, ['description', 'onsetDate']),
+	PickType(GenericResponseDto, ['id']),
+) {}
+
+export class GetSymptomsQueryDto extends PickType(PaginationRequestDto, [
+	'page',
+	'pageSize',
+]) {}

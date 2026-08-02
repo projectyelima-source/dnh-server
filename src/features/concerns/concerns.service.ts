@@ -1,19 +1,44 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { v7 as uuidv7 } from 'uuid';
+import { generateFilter } from '@/common/factory';
 import { flattenMeta } from '../../common/entities/base-dh.entity';
-import { ConcernQueryFilter, CreateConcernDto, UpdateConcernDto } from './dto';
-import { Concern } from './entities/concern.entity';
+import { PatientsService } from '../patients/patients.service';
+import {
+	AddSymptomsDto,
+	ConcernQueryFilter,
+	CreateConcernDto,
+	GetSymptomsQueryDto,
+	UpdateConcernDto,
+} from './dto';
+import { Concern, ConcernTypeEnum } from './entities/concern.entity';
 
 @Injectable()
 export class ConcernsService {
 	constructor(
 		@InjectModel(Concern.name) private concernModel: Model<Concern>,
+		private readonly patientsService: PatientsService,
 	) {}
 
-	create(_createConcernDto: CreateConcernDto) {
-		return 'This action adds a new concern';
+	async create(userId: string, addSymptomsDto: AddSymptomsDto) {
+		const patient = await this.patientsService.findPatientByUserId(
+			userId,
+			'_id',
+		);
+		if (!patient) {
+			throw new NotFoundException('Patient record not found');
+		}
+
+		const symptom = await this.concernModel.create({
+			userId,
+			patient: patient._id,
+			concernType: ConcernTypeEnum.SYMPTOMS,
+			onsetDate: new Date(),
+			description: addSymptomsDto.description,
+		});
+
+		return symptom._id;
 	}
 
 	async upsertConcern(filters: Record<string, any>, dto: CreateConcernDto) {
@@ -53,9 +78,14 @@ export class ConcernsService {
 			concern.concernType?.replace(/_/g, ' ') || 'health concern';
 		parts.push(`Patient reported a ${typeLabel}.`);
 
-		// 2. The "What" (Description array)
-		if (concern.description && concern.description.length > 0) {
-			parts.push(`Details: ${concern.description.join(', ')}.`);
+		// 2. The "What" (Description array or string)
+		if (concern.description) {
+			const descText = Array.isArray(concern.description)
+				? concern.description.join(', ')
+				: concern.description;
+			if (descText) {
+				parts.push(`Details: ${descText}.`);
+			}
 		}
 
 		// 3. Severity & Status (The Urgency)
@@ -108,20 +138,38 @@ export class ConcernsService {
 		return results;
 	}
 
-	findAll() {
-		return `This action returns all concerns`;
+	async findSymptomById(id: string, userId: string) {
+		const symptom = await this.concernModel
+			.findOne({ _id: id, userId, concernType: ConcernTypeEnum.SYMPTOMS })
+			.select('description onsetDate');
+		if (!symptom) {
+			throw new NotFoundException('Symptom not found');
+		}
+		return symptom;
 	}
 
-	findOne(id: number) {
-		return `This action returns a #${id} concern`;
+	async updateSymptom(id: string, userId: string, dto: UpdateConcernDto) {
+		const symptom = await this.concernModel.findOneAndUpdate(
+			{ _id: id, userId, concernType: ConcernTypeEnum.SYMPTOMS },
+			{ $set: dto },
+			{ new: true },
+		);
+		if (!symptom) {
+			throw new NotFoundException('Symptom not found');
+		}
+		return symptom._id.toString();
 	}
 
-	update(id: number, _updateConcernDto: UpdateConcernDto) {
-		return `This action updates a #${id} concern`;
-	}
-
-	remove(id: number) {
-		return `This action removes a #${id} concern`;
+	async deleteSymptom(id: string, userId: string) {
+		const symptom = await this.concernModel.findOneAndDelete({
+			_id: id,
+			userId,
+			concernType: ConcernTypeEnum.SYMPTOMS,
+		});
+		if (!symptom) {
+			throw new NotFoundException('Symptom not found');
+		}
+		return symptom;
 	}
 
 	async findByUserId(userId: string, offset: number, limit: number) {
@@ -141,6 +189,23 @@ export class ConcernsService {
 
 	async countByUserId(userId: string): Promise<number> {
 		return this.concernModel.countDocuments({ userId });
+	}
+
+	async fetchSymptoms(userId: string, query: GetSymptomsQueryDto) {
+		const filter = { userId, concernType: ConcernTypeEnum.SYMPTOMS };
+		const pageFilter = generateFilter(query).pageFilter;
+
+		const [rows, count] = await Promise.all([
+			this.concernModel
+				.find(filter)
+				.select('description onsetDate')
+				.skip(pageFilter.offset)
+				.limit(pageFilter.limit)
+				.sort(pageFilter.orderBy),
+			this.concernModel.countDocuments(filter),
+		]);
+
+		return { rows, count };
 	}
 
 	async removeByUserId(userId: string) {

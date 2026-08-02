@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { DhVectorsModule } from '../dh-vectors/dh-vectors.module';
+import { PatientsModule } from '../patients/patients.module';
 // import { ConcernsController } from './concerns.controller';
 import { ConcernsService } from './concerns.service';
 import { Concern, ConcernSchema } from './entities/concern.entity';
@@ -9,6 +10,7 @@ import { Concern, ConcernSchema } from './entities/concern.entity';
 	imports: [
 		MongooseModule.forFeature([{ name: Concern.name, schema: ConcernSchema }]),
 		DhVectorsModule,
+		PatientsModule,
 	],
 	// controllers: [ConcernsController],
 	providers: [ConcernsService],

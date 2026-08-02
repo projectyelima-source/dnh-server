@@ -46,6 +46,11 @@ import type { CreateAppointmentRequestDto } from '@/features/appointments/appoin
 import { AppointmentsService } from '@/features/appointments/appointments.service';
 import { ChronicConditionsService } from '@/features/chronic-conditions/chronic-conditions.service';
 import { ConcernsService } from '@/features/concerns/concerns.service';
+import {
+	AddSymptomsDto,
+	GetSymptomsQueryDto,
+	UpdateConcernDto,
+} from '@/features/concerns/dto';
 import { GetFacilitiesQueryDto } from '@/features/facilities/dto';
 import { FacilitiesService } from '@/features/facilities/facilities.service';
 import {
@@ -863,5 +868,25 @@ export class ClientService {
 
 	async fetchFacilities(query: GetFacilitiesQueryDto) {
 		return this.facilitiesService.findAll(query);
+	}
+
+	async createSymptom(userId: string, dto: AddSymptomsDto) {
+		return this.concernsService.create(userId, dto);
+	}
+
+	async fetchSymptoms(userId: string, query: GetSymptomsQueryDto) {
+		return this.concernsService.fetchSymptoms(userId, query);
+	}
+
+	async fetchSymptomById(id: string, userId: string) {
+		return this.concernsService.findSymptomById(id, userId);
+	}
+
+	async updateSymptom(id: string, userId: string, dto: UpdateConcernDto) {
+		return this.concernsService.updateSymptom(id, userId, dto);
+	}
+
+	async deleteSymptom(id: string, userId: string) {
+		return this.concernsService.deleteSymptom(id, userId);
 	}
 }

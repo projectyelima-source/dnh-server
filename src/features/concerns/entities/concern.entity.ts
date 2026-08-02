@@ -61,11 +61,10 @@ export class Concern extends BaseDH {
 	concernName: string;
 
 	@Prop({
-		type: [String],
-		description:
-			'Descriptions of the concern (at least one, e.g., [Headache, Nausea])',
+		type: String,
+		description: 'Description of the concern (e.g., Headache)',
 	})
-	description: string[];
+	description: string;
 
 	@Prop({
 		type: String,
