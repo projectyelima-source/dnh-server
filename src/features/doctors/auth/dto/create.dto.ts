@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
-import { IsMongoId, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
 
 export enum PersonnelRoles {
 	CLINICIAN = 'clinician',
@@ -16,6 +16,22 @@ export class CreatePersonnelDto {
 	provider?: PersonnelProviders;
 
 	providerUserId?: string;
+
+	@ApiPropertyOptional({
+		description: 'Personnel ID (MongoDB ObjectId) to update',
+		example: '664b7f8e2c2a1e4b8f1d2c3a4',
+	})
+	@IsOptional()
+	@IsMongoId()
+	personnelId?: string;
+
+	@ApiPropertyOptional({
+		enum: PersonnelRoles,
+		description: 'Role assigned to this personnel',
+	})
+	@IsOptional()
+	@IsEnum(PersonnelRoles)
+	role?: PersonnelRoles | null;
 
 	@ApiPropertyOptional({
 		example: 'John',

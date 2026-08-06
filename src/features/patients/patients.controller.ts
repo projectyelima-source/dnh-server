@@ -23,45 +23,44 @@ import {
 	GetPatientDto,
 	GetPatientNoPaginateDto,
 	GetPersonnelPatientDto,
-	GetPersonnelPatientsDto,
 } from './dto';
 import { PatientsService } from './patients.service';
 
-@ApiTags('Dnh Personnel-Patients')
-@Controller('personnel/patients')
+@ApiTags('Dnh Personnel-Pharmacy')
+@Controller('personnel/pharmacies/patients')
 export class PatientsController {
 	private logger = new Logger(PatientsController.name);
 	constructor(private readonly patientsService: PatientsService) {}
 
-	@CustomApiResponse(['paginated'], {
-		type: GetPersonnelPatientsDto,
-		message: 'Patients fetched successfully',
-	})
-	@Get()
-	async findAll(@Query() query: FilterPatientsDto) {
-		try {
-			const response = await this.patientsService.findAll(query);
-			const paginated = new PaginatedDataResponseDto(
-				response.rows,
-				query.page,
-				query.pageSize,
-				response.count,
-			);
-			return new ApiSuccessResponseDto(
-				paginated,
-				HttpStatus.OK,
-				'Patients fetched successfully',
-			);
-		} catch (error) {
-			throwError(this.logger, error);
-		}
-	}
+	// @CustomApiResponse(['paginated'], {
+	// 	type: GetPersonnelPatientsDto,
+	// 	message: 'Patients fetched successfully',
+	// })
+	// @Get()
+	// async findAll(@Query() query: FilterPatientsDto) {
+	// 	try {
+	// 		const response = await this.patientsService.findAll(query);
+	// 		const paginated = new PaginatedDataResponseDto(
+	// 			response.rows,
+	// 			query.page,
+	// 			query.pageSize,
+	// 			response.count,
+	// 		);
+	// 		return new ApiSuccessResponseDto(
+	// 			paginated,
+	// 			HttpStatus.OK,
+	// 			'Patients fetched successfully',
+	// 		);
+	// 	} catch (error) {
+	// 		throwError(this.logger, error);
+	// 	}
+	// }
 
 	@CustomApiResponse(['paginated', 'authorizeChronicCare'], {
 		type: GetPatientDto,
 		message: 'Patients fetched successfully',
 	})
-	@Get('pharmacies')
+	@Get()
 	async findAllForPharmacy(
 		@Query() query: FilterPatientsDto,
 		@GetUser('sub') personnelId: string,

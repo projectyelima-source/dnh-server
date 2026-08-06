@@ -22,11 +22,8 @@ export function throwError(logger: Logger, error: any): void {
 	if (error.name === MongoServerError.name && error.code === 11000) {
 		const field = Object.keys(error.keyValue)[0];
 		const value = error.keyValue[field];
-
-		logger.warn(`${field} ${value} already exists`);
-		throw new BadRequestException(
-			`${field.replaceAll('_', ' ')} ${value} is already in use`,
-		);
+		logger.warn(`duplicate key violation — field: ${field}, value: ${value}`);
+		throw new BadRequestException(`forbidden: ${field}`);
 	}
 
 	// Handle invalid ObjectId or invalid referenced value

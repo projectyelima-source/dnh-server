@@ -12,7 +12,12 @@ import { ApiTags } from '@nestjs/swagger';
 import { CustomApiResponse, GetUser } from '@/common/decorators';
 import { ApiSuccessResponseDto, throwError } from '@/common/utils/responses';
 import { ChronicCareAuthService } from './chronic-care-auth.service';
-import { CreatePersonnelDto, GetPersonnelDto, LoginPersonnelDto } from './dto';
+import {
+	CreatePersonnelDto,
+	GetPersonnelDto,
+	LoginPersonnelDto,
+	LoginPersonnelResponseDto,
+} from './dto';
 
 @ApiTags('Dnh Personnels')
 @Controller('personnel/auth')
@@ -56,7 +61,8 @@ export class ChronicCareAuthController {
 		}
 	}
 
-	@CustomApiResponse(['updated'], {
+	@CustomApiResponse(['success', 'notfound'], {
+		type: LoginPersonnelResponseDto,
 		message: 'Personnel logged in successfully',
 	})
 	@HttpCode(HttpStatus.OK)
@@ -74,7 +80,8 @@ export class ChronicCareAuthController {
 		}
 	}
 
-	@CustomApiResponse(['updated'], {
+	@CustomApiResponse(['success', 'notfound'], {
+		type: LoginPersonnelResponseDto,
 		message: 'Google log in successful',
 	})
 	@HttpCode(HttpStatus.OK)

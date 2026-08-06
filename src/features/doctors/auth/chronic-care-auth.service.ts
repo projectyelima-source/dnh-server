@@ -35,13 +35,20 @@ export class ChronicCareAuthService {
 	}
 
 	async onboard(dto: CreatePersonnelDto) {
-		const personnel = await this.personnelModel.create({
-			userName: `${dto.firstname ?? ''} ${dto.lastname ?? ''}`.trim(),
-			phoneNumber: dto.phoneNumber,
-			personnelIdNumber: dto.personnelIdNumber,
-			facility: dto.facility,
-		} as any);
-		return personnel._id;
+		const personnel = await this.personnelModel.findByIdAndUpdate(
+			dto.personnelId,
+			{
+				$set: {
+					userName: `${dto.firstname ?? ''} ${dto.lastname ?? ''}`.trim(),
+					phoneNumber: dto.phoneNumber,
+					personnelIdNumber: dto.personnelIdNumber,
+					facility: dto.facility,
+					...(dto.role !== undefined && { role: dto.role }),
+				},
+			},
+			{ new: true },
+		);
+		return personnel?._id;
 	}
 
 	async login(dto: LoginPersonnelDto) {
@@ -74,7 +81,7 @@ export class ChronicCareAuthService {
 			},
 		);
 
-		return token;
+		return { personnelId: personnel._id.toString(), token };
 	}
 
 	async googleAuth(dto: GoogleLoginDto) {
@@ -82,12 +89,11 @@ export class ChronicCareAuthService {
 		const { email, sub: googleId } = payload;
 
 		try {
-			let personnelToken = await this.login({
+			return await this.login({
 				email: email!,
 				providerUserId: googleId,
 				password: email || googleId,
 			});
-			return personnelToken;
 		} catch (error) {
 			if (
 				error instanceof UnauthorizedException ||
@@ -111,7 +117,7 @@ export class ChronicCareAuthService {
 					},
 				);
 
-				return token;
+				return { personnelId: personnelId.toString(), token };
 			}
 			throw error;
 		}

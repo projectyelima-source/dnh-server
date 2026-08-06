@@ -14,7 +14,7 @@ export class ApiSuccessResponseDto<T> {
 	message: string;
 }
 export class ApiUpsertSuccessResponseDto {
-	@ApiProperty({ example: 'dcbe5fc8-8c1a-4e0a-9339-9962f810601d' })
+	@ApiProperty({ example: '6a73e050540fd86b143e7ab6' })
 	data?: string;
 	@ApiProperty()
 	statusCode: number;

@@ -32,8 +32,8 @@ import {
 } from './dto';
 import { VitalHistoriesService } from './vital-histories.service';
 
-@ApiTags('Chronic Care-Doctors-Vital-Histories')
-@Controller('chronic-care/doctors/vital-histories')
+@ApiTags('Dnh Personnel-Pharmacy')
+@Controller('personnel/pharmacies/vital-histories')
 export class VitalHistoriesController {
 	private logger = new Logger(VitalHistoriesController.name);
 	constructor(private readonly vitalHistoriesService: VitalHistoriesService) {}

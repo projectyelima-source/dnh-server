@@ -3,5 +3,5 @@ export {
 	PersonnelProviders,
 	PersonnelRoles,
 } from './create.dto';
-export { GetPersonnelDto } from './get.dto';
+export { GetPersonnelDto, LoginPersonnelResponseDto } from './get.dto';
 export { LoginPersonnelDto } from './login.dto';

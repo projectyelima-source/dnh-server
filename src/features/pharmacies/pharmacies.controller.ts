@@ -6,8 +6,8 @@ import { ApiSuccessResponseDto, throwError } from '@/common/utils/responses';
 import { GetPharmacyAnalyticsDto, QueryPharmacyAnalyticsDto } from './dto';
 import { PharmaciesService } from './pharmacies.service';
 
-@ApiTags('Chronic Care Pharmacies')
-@Controller('chronic-care/pharmacies')
+@ApiTags('Dnh Personnel-Pharmacy')
+@Controller('personnel/pharmacies')
 export class PharmaciesController {
 	private logger = new Logger(PharmaciesController.name);
 	constructor(private readonly pharmaciesService: PharmaciesService) {}

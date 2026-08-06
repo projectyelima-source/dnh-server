@@ -27,7 +27,7 @@ export class Personnel extends BaseEntity {
 	@Prop({ description: 'The SSO authentication provider user id' })
 	providerUserId: string;
 
-	@Prop({ description: "The user's email address" })
+	@Prop({ unique: true, sparse: true, description: "The user's email address" })
 	email: string;
 
 	@Prop({ description: "The user's phone number" })
