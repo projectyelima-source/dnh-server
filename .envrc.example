@@ -26,6 +26,8 @@ export REDIS_URL=redis://localhost:6379/5
 # =========================
 export JWT_SECRET=<your-jwt-secret>
 export JWT_TTL=1d
+export OTP_TTL=600000
+
 
 # =========================
 # Firebase - Base App

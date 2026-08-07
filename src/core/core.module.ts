@@ -8,6 +8,7 @@ import { CommunicationsModule } from './communications/communications.module';
 import { DatabaseModule } from './database/database.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { LoggingModule } from './logging/logging.module';
+import { SecurityModule } from './security/security.module';
 
 @Module({
 	imports: [
@@ -20,6 +21,7 @@ import { LoggingModule } from './logging/logging.module';
 		FirebaseModule,
 		DatabaseModule,
 		CommunicationsModule,
+		SecurityModule,
 	],
 })
 export class CoreModule {}

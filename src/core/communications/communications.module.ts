@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { PugAdapter } from '@nestjs-modules/mailer/adapters/pug.adapter';
 import { join } from 'path';
@@ -7,6 +7,7 @@ import { EmailService } from './email.service';
 import { AfricasTalkingService, NodemailerService } from './providers';
 import { SmsService } from './sms.service';
 
+@Global()
 @Module({
 	imports: [
 		MailerModule.forRootAsync({
@@ -40,5 +41,6 @@ import { SmsService } from './sms.service';
 		},
 		CommunicationsService,
 	],
+	exports: [CommunicationsService],
 })
 export class CommunicationsModule {}
