@@ -21,6 +21,9 @@ export class Personnel extends BaseEntity {
 	@Prop({ description: 'The name of the personnel' })
 	userName: string;
 
+	@Prop({ description: 'The personnel is verified' })
+	isVerified: boolean;
+
 	@Prop({ description: 'The SSO authentication provider' })
 	provider: string;
 
@@ -64,6 +67,7 @@ PersonnelSchema.pre<Personnel>('save', async function () {
 	}
 
 	if (this.isNew) {
+		this.isVerified = false;
 		this.referralCode = generateCode('CCREF', this.userName);
 	}
 });

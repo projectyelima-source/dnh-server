@@ -1,8 +1,10 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsString } from 'class-validator';
 
 export class SmsDto {
 	@IsNotEmpty()
-	recipient: string | string[];
+	@IsArray()
+	@IsString({ each: true })
+	recipient: string[];
 
 	@IsString()
 	@IsNotEmpty()

@@ -8,5 +8,5 @@ export abstract class EmailService {
 	 * @returns Returns nothing
 	 * @throws An error if validation of the payload fails.
 	 */
-	abstract send(payload: MailDto): Promise<void>;
+	abstract send(payload: MailDto): void;
 }

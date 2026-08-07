@@ -1,0 +1,9 @@
+extends baseEmail
+block content
+  p Hi #{fullName || email},
+  p The OTP is 
+  span(style="font-size: 2em") #{code}
+  p This OTP is valid for only #{ttl},
+  p If you did not make this request, please ignore this email
+  p Regards,
+  p Yelima

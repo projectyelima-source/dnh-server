@@ -1,4 +1,5 @@
 import {
+	BadRequestException,
 	Injectable,
 	NotFoundException,
 	UnauthorizedException,
@@ -9,6 +10,9 @@ import { Model } from 'mongoose';
 import { AuthService } from '@/core/auth/auth.service';
 import { GoogleLoginDto } from '@/core/auth/dto';
 import { UserType } from '@/core/auth/enums';
+import { CommunicationsService } from '@/core/communications/communications.service';
+import { GenerateOtpDto, VerifyOtpDto } from '@/core/security/otp/dto';
+import { OtpService } from '@/core/security/otp/otp.service';
 import { Personnel } from '../entities/personnel.entity';
 import {
 	CreatePersonnelDto,
@@ -22,6 +26,8 @@ export class ChronicCareAuthService {
 	constructor(
 		@InjectModel(Personnel.name) private personnelModel: Model<Personnel>,
 		private authService: AuthService,
+		private readonly otpService: OtpService,
+		private readonly communicationsService: CommunicationsService,
 	) {}
 
 	async create(dto: LoginPersonnelDto) {
@@ -48,6 +54,21 @@ export class ChronicCareAuthService {
 			},
 			{ new: true },
 		);
+
+		if (!personnel) {
+			throw new NotFoundException('Personnel not found');
+		}
+
+		const code = await this.otpService.generate({
+			identifier: `${personnel.email}`,
+		});
+
+		this.sendVerificationCodeMail({
+			mail: personnel.email,
+			fullName: personnel.userName,
+			code: code,
+			phoneNumber: personnel.phoneNumber,
+		});
 		return personnel?._id;
 	}
 
@@ -60,14 +81,19 @@ export class ChronicCareAuthService {
 
 		const personnel = await this.personnelModel.findOne({ $or: orQuery });
 		if (!personnel) {
-			throw new NotFoundException('Personnel not found. Invalid credentials');
+			throw new UnauthorizedException('Invalid credentials');
 		}
+
+		if (!personnel.isVerified) {
+			throw new UnauthorizedException('Personnel not verified');
+		}
+
 		const passwordMatch = await bcrypt.compare(
 			dto.password,
 			personnel.password,
 		);
 		if (!passwordMatch) {
-			throw new UnauthorizedException('Incorrect Password');
+			throw new UnauthorizedException('Invalid credentials');
 		}
 		const token = await this.authService.signToken(
 			personnel._id.toString(),
@@ -134,5 +160,80 @@ export class ChronicCareAuthService {
 		const json = personnel.toJSON() as any;
 		json.assignedPatientsCount = 0;
 		return json;
+	}
+
+	async sendOnboardOtp(dto: GenerateOtpDto) {
+		const personnel = await this.personnelModel.findOne({
+			$or: [{ email: dto.identifier }, { phoneNumber: dto.identifier }],
+		});
+		if (!personnel) {
+			throw new NotFoundException('Personnel not found');
+		}
+		if (personnel.isVerified) {
+			throw new BadRequestException('Personnel already verified');
+		}
+
+		const code = await this.otpService.generate({
+			identifier: `${personnel.email}`,
+		});
+
+		this.sendVerificationCodeMail({
+			mail: personnel.email,
+			fullName: personnel.userName,
+			code: code,
+			phoneNumber: personnel.phoneNumber,
+		});
+	}
+
+	async verifyOnboardOtp(dto: VerifyOtpDto) {
+		const personnel = await this.personnelModel.findOne({
+			$or: [{ email: dto.identifier }, { phoneNumber: dto.identifier }],
+		});
+
+		if (!personnel) {
+			throw new NotFoundException('Personnel not found');
+		}
+
+		const identifier = `${personnel.email}`;
+		const isValid = await this.otpService.verify({
+			identifier,
+			code: dto.code,
+		});
+
+		if (!isValid) {
+			throw new BadRequestException('Invalid or expired OTP');
+		}
+
+		personnel.isVerified = true;
+		await personnel.save();
+	}
+
+	private sendVerificationCodeMail(payload: {
+		mail: string;
+		fullName: string;
+		code: number;
+		phoneNumber?: string;
+	}) {
+		const { mail, fullName, code, phoneNumber } = payload;
+		const emailPayload = {
+			recipient: mail,
+			subject: 'Email OTP - Yelima',
+			template: './emailVerificationCode',
+			context: {
+				fullName,
+				code,
+				email: mail,
+				ttl: '10 minutes',
+			},
+		};
+
+		this.communicationsService.sendMail(emailPayload);
+
+		if (phoneNumber) {
+			this.communicationsService.sendSms({
+				recipient: [phoneNumber],
+				message: `Hi ${fullName}, your OTP is ${code}. It is valid for 10 minutes.`,
+			});
+		}
 	}
 }

@@ -10,7 +10,12 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CustomApiResponse, GetUser } from '@/common/decorators';
-import { ApiSuccessResponseDto, throwError } from '@/common/utils/responses';
+import {
+	ApiSuccessResponseDto,
+	ApiSuccessResponseNoData,
+	throwError,
+} from '@/common/utils/responses';
+import { GenerateOtpDto, VerifyOtpDto } from '@/core/security/otp/dto';
 import { ChronicCareAuthService } from './chronic-care-auth.service';
 import {
 	CreatePersonnelDto,
@@ -93,6 +98,40 @@ export class ChronicCareAuthController {
 				response,
 				HttpStatus.OK,
 				'Google log in successful',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['successNull', 'notfound'], {
+		message: 'OTP sent successfully',
+	})
+	@HttpCode(HttpStatus.OK)
+	@Post('otp/re-send')
+	async sendOtp(@Body() dto: GenerateOtpDto) {
+		try {
+			await this.authService.sendOnboardOtp(dto);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'OTP sent successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound'], {
+		message: 'OTP verified successfully',
+	})
+	@HttpCode(HttpStatus.OK)
+	@Post('otp/verify')
+	async verifyOtp(@Body() dto: VerifyOtpDto) {
+		try {
+			await this.authService.verifyOnboardOtp(dto);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'OTP verified successfully',
 			);
 		} catch (error) {
 			throwError(this.logger, error);
