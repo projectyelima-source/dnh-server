@@ -59,16 +59,21 @@ export class ChronicCareAuthService {
 			throw new NotFoundException('Personnel not found');
 		}
 
-		const code = await this.otpService.generate({
-			identifier: `${personnel.email}`,
-		});
+		if (personnel.role == PersonnelRoles.CLINICIAN) {
+			const code = await this.otpService.generate({
+				identifier: `${personnel.email}`,
+			});
 
-		this.sendVerificationCodeMail({
-			mail: personnel.email,
-			fullName: personnel.userName,
-			code: code,
-			phoneNumber: personnel.phoneNumber,
-		});
+			this.sendVerificationCodeMail({
+				mail: personnel.email,
+				fullName: personnel.userName,
+				code: code,
+				phoneNumber: personnel.phoneNumber,
+			});
+		} else {
+			personnel.isVerified = true;
+			await personnel.save();
+		}
 		return personnel?._id;
 	}
 
