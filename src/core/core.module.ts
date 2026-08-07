@@ -4,6 +4,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { CachingModule } from './caching/caching.module';
+import { CommunicationsModule } from './communications/communications.module';
 import { DatabaseModule } from './database/database.module';
 import { FirebaseModule } from './firebase/firebase.module';
 import { LoggingModule } from './logging/logging.module';
@@ -18,6 +19,7 @@ import { LoggingModule } from './logging/logging.module';
 		LoggingModule,
 		FirebaseModule,
 		DatabaseModule,
+		CommunicationsModule,
 	],
 })
 export class CoreModule {}

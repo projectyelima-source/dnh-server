@@ -43,9 +43,19 @@ export JWT_TTL=1d
 export FIREBASE_BASE_PROJECT_ID=<dev-project-id>
 export FIREBASE_BASE_PRIVATE_KEY_ID=<dev-private-key-id>
 export FIREBASE_BASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n<dev-private-key>\n-----END PRIVATE KEY-----\n"
-export FIREBASE_BASE_CLIENT_EMAIL=<dev-client-email>
-export FIREBASE_BASE_CLIENT_ID=<dev-client-id>
-export FIREBASE_BASE_CLIENT_CERT_URL=<dev-client-cert-url>
+# export FIREBASE_BASE_CLIENT_EMAIL=<dev-client-email>
+# export FIREBASE_BASE_CLIENT_ID=<dev-client-id>
+# export FIREBASE_BASE_CLIENT_CERT_URL=<dev-client-cert-url>
+export BASE_STORAGE_BUCKET=<firebase-storage-bucket>
+
+# =========================
+# EMAIL CONFIGURATION
+# =========================
+export EMAIL_HOST=<email-host>
+export EMAIL_USERNAME=<email-username>
+export EMAIL_PASSWORD=<email-password>
+export EMAIL_FROM=<email-from>
+export EMAIL_PORT=<email-port>
 
 # =========================
 # Logging / Observability
@@ -57,6 +67,9 @@ export LOGTAIL_SOURCE_TOKEN=<logtail-token>
 # AI / LLM
 # =========================
 export GOOGLE_API_KEY=<google-api-key>
+export GOOGLE_GENERATIVE_AI_API_KEY=<google-generative-ai-api-key>
+export GOOGLE_AI_VERSION=<google-ai-version>
+export OPENAI_API_KEY=<openai-api-key>
 
 # =========================
 # Qdrant Configuration
@@ -74,3 +87,12 @@ export QUEUE_TLS=
 # Nanoid Configuration
 # =========================
 export NANOID_GEN=AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890
+
+# =========================
+# ATSK SMS Configuration
+# =========================
+export ATSK_API_KEY=<atsk-api-key>
+export ATSK_SENDER=<atsk-sender>
+export ATSK_SHORT_CODE=<atsk-short-code>
+export ATSK_USERNAME=<atsk-username>
+
