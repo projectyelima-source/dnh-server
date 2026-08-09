@@ -1,5 +1,6 @@
 import {
 	BadRequestException,
+	ConflictException,
 	Injectable,
 	NotFoundException,
 	UnauthorizedException,
@@ -20,11 +21,14 @@ import {
 	PersonnelProviders,
 	PersonnelRoles,
 } from './dto';
+import { PersonnelAccount } from './personnel-accounts/entities/personnel-account.entity';
 
 @Injectable()
 export class ChronicCareAuthService {
 	constructor(
 		@InjectModel(Personnel.name) private personnelModel: Model<Personnel>,
+		@InjectModel(PersonnelAccount.name)
+		private personnelAccountModel: Model<PersonnelAccount>,
 		private authService: AuthService,
 		private readonly otpService: OtpService,
 		private readonly communicationsService: CommunicationsService,
@@ -32,40 +36,57 @@ export class ChronicCareAuthService {
 
 	async create(dto: LoginPersonnelDto) {
 		const personnel = await this.personnelModel.create({
+			role: PersonnelRoles.CLINICIAN,
+		});
+
+		const personnelAccount = await this.personnelAccountModel.create({
+			provider: dto.provider || PersonnelProviders.EMAIL,
+			providerUserId: dto.providerUserId,
 			email: dto.email,
 			password: dto.password,
-			role: PersonnelRoles.CLINICIAN,
+			personnel: personnel._id,
+		});
+
+		await this.personnelModel.findByIdAndUpdate(personnel._id, {
+			$push: { personnelAccounts: personnelAccount._id },
 		});
 
 		return personnel._id;
 	}
 
 	async onboard(dto: CreatePersonnelDto) {
-		const personnel = await this.personnelModel.findByIdAndUpdate(
-			dto.personnelId,
-			{
-				$set: {
-					userName: `${dto.firstname ?? ''} ${dto.lastname ?? ''}`.trim(),
-					phoneNumber: dto.phoneNumber,
-					personnelIdNumber: dto.personnelIdNumber,
-					facility: dto.facility,
-					...(dto.role !== undefined && { role: dto.role }),
+		const personnel = await this.personnelModel
+			.findByIdAndUpdate(
+				dto.personnelId,
+				{
+					$set: {
+						userName: `${dto.firstname ?? ''} ${dto.lastname ?? ''}`.trim(),
+						phoneNumber: dto.phoneNumber,
+						personnelIdNumber: dto.personnelIdNumber,
+						facility: dto.facility,
+						...(dto.role !== undefined && { role: dto.role }),
+					},
 				},
-			},
-			{ new: true },
-		);
+				{ new: true },
+			)
+			.populate({
+				path: 'personnelAccounts',
+				select: 'email',
+			});
 
 		if (!personnel) {
 			throw new NotFoundException('Personnel not found');
 		}
 
-		if (personnel.role == PersonnelRoles.CLINICIAN) {
+		const email = (personnel.personnelAccounts as any)?.[0]?.email;
+
+		if (personnel.role === PersonnelRoles.CLINICIAN) {
 			const code = await this.otpService.generate({
-				identifier: `${personnel.email}`,
+				identifier: `${email}`,
 			});
 
 			this.sendVerificationCodeMail({
-				mail: personnel.email,
+				mail: email,
 				fullName: personnel.userName,
 				code: code,
 				phoneNumber: personnel.phoneNumber,
@@ -84,18 +105,35 @@ export class ChronicCareAuthService {
 			orQuery.push({ providerUserId: dto.providerUserId });
 		}
 
-		const personnel = await this.personnelModel.findOne({ $or: orQuery });
-		if (!personnel) {
+		const personnelAccount = await this.personnelAccountModel
+			.findOne({
+				$or: orQuery,
+			})
+			.populate({
+				path: 'personnel',
+				select: 'isVerified role facility',
+			});
+
+		if (!personnelAccount) {
+			const existingAccount = await this.personnelAccountModel.findOne({
+				email: dto.email,
+				provider: PersonnelProviders.EMAIL,
+			});
+			if (existingAccount) {
+				throw new ConflictException('Account with this email already exists');
+			}
 			throw new UnauthorizedException('Invalid credentials');
 		}
 
-		if (!personnel.isVerified) {
+		const personnel = personnelAccount.personnel as any;
+
+		if (!personnel?.isVerified) {
 			throw new UnauthorizedException('Personnel not verified');
 		}
 
 		const passwordMatch = await bcrypt.compare(
 			dto.password,
-			personnel.password,
+			personnelAccount.password,
 		);
 		if (!passwordMatch) {
 			throw new UnauthorizedException('Invalid credentials');
@@ -107,7 +145,7 @@ export class ChronicCareAuthService {
 			},
 			{
 				role: personnel.role as PersonnelRoles,
-				email: personnel.email,
+				email: personnelAccount.email,
 				facility: personnel.facility?.toString(),
 			},
 		);
@@ -117,8 +155,10 @@ export class ChronicCareAuthService {
 
 	async googleAuth(dto: GoogleLoginDto) {
 		const payload = await this.authService.googleLogin(dto.idToken);
-		const { email, sub: googleId } = payload;
-
+		const { email, sub: googleId, email_verified: isVerified } = payload;
+		if (!isVerified) {
+			throw new ConflictException('Email not verified');
+		}
 		try {
 			return await this.login({
 				email: email!,
@@ -168,22 +208,37 @@ export class ChronicCareAuthService {
 	}
 
 	async sendOnboardOtp(dto: GenerateOtpDto) {
-		const personnel = await this.personnelModel.findOne({
-			$or: [{ email: dto.identifier }, { phoneNumber: dto.identifier }],
-		});
-		if (!personnel) {
+		let email: string | undefined;
+		let personnel: any;
+
+		const account = await this.personnelAccountModel
+			.findOne({ email: dto.identifier })
+			.populate({ path: 'personnel' });
+
+		if (account) {
+			email = account.email;
+			personnel = account.personnel;
+		} else {
+			personnel = await this.personnelModel
+				.findOne({ phoneNumber: dto.identifier })
+				.populate({ path: 'personnelAccounts', select: 'email' });
+			email = personnel?.personnelAccounts?.[0]?.email;
+		}
+
+		if (!personnel || !email) {
 			throw new NotFoundException('Personnel not found');
 		}
+
 		if (personnel.isVerified) {
 			throw new BadRequestException('Personnel already verified');
 		}
 
 		const code = await this.otpService.generate({
-			identifier: `${personnel.email}`,
+			identifier: `${email}`,
 		});
 
 		this.sendVerificationCodeMail({
-			mail: personnel.email,
+			mail: email,
 			fullName: personnel.userName,
 			code: code,
 			phoneNumber: personnel.phoneNumber,
@@ -191,17 +246,29 @@ export class ChronicCareAuthService {
 	}
 
 	async verifyOnboardOtp(dto: VerifyOtpDto) {
-		const personnel = await this.personnelModel.findOne({
-			$or: [{ email: dto.identifier }, { phoneNumber: dto.identifier }],
-		});
+		let email: string | undefined;
+		let personnel: any;
 
-		if (!personnel) {
+		const account = await this.personnelAccountModel
+			.findOne({ email: dto.identifier })
+			.populate({ path: 'personnel' });
+
+		if (account) {
+			email = account.email;
+			personnel = account.personnel;
+		} else {
+			personnel = await this.personnelModel
+				.findOne({ phoneNumber: dto.identifier })
+				.populate({ path: 'personnelAccounts', select: 'email' });
+			email = personnel?.personnelAccounts?.[0]?.email;
+		}
+
+		if (!personnel || !email) {
 			throw new NotFoundException('Personnel not found');
 		}
 
-		const identifier = `${personnel.email}`;
 		const isValid = await this.otpService.verify({
-			identifier,
+			identifier: email,
 			code: dto.code,
 		});
 

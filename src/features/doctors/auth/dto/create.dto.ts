@@ -1,6 +1,12 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Expose, Transform } from 'class-transformer';
-import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
+import {
+	IsEmail,
+	IsEnum,
+	IsMongoId,
+	IsOptional,
+	IsString,
+} from 'class-validator';
 
 export enum PersonnelRoles {
 	CLINICIAN = 'clinician',
@@ -9,9 +15,15 @@ export enum PersonnelRoles {
 
 export enum PersonnelProviders {
 	GOOGLE = 'google',
+	EMAIL = 'email',
 }
 
 export class CreatePersonnelDto {
+	@IsOptional()
+	@IsEmail()
+	@Transform(({ value }) =>
+		typeof value === 'string' ? value.toLowerCase().trim() : value,
+	)
 	email?: string;
 	provider?: PersonnelProviders;
 

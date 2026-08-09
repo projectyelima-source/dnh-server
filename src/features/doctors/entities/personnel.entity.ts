@@ -1,10 +1,10 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import * as bcrypt from 'bcrypt';
 import { ObjectId } from 'mongodb';
 import { BaseEntity } from '@/common/entities';
 import { generateCode } from '@/common/utils/helpers/code-generator.helper';
 import { deleteByPattern } from '@/core/caching/utils';
 import { Facility } from '@/features/facilities/entities/facility.entity';
+import { PersonnelAccount } from '../auth/personnel-accounts/entities/personnel-account.entity';
 
 @Schema({
 	timestamps: true,
@@ -18,20 +18,11 @@ import { Facility } from '@/features/facilities/entities/facility.entity';
 	},
 })
 export class Personnel extends BaseEntity {
-	@Prop({ description: 'The name of the personnel' })
+	@Prop({ unique: false, description: 'The name of the personnel' })
 	userName: string;
 
 	@Prop({ description: 'The personnel is verified' })
 	isVerified: boolean;
-
-	@Prop({ description: 'The SSO authentication provider' })
-	provider: string;
-
-	@Prop({ description: 'The SSO authentication provider user id' })
-	providerUserId: string;
-
-	@Prop({ unique: true, sparse: true, description: "The user's email address" })
-	email: string;
 
 	@Prop({ description: "The user's phone number" })
 	phoneNumber: string;
@@ -41,9 +32,6 @@ export class Personnel extends BaseEntity {
 
 	@Prop({ description: 'The role of the personnel (e.g., doctor, pharmacist)' })
 	role: string;
-
-	@Prop({ description: 'The hashed password for authentication' })
-	password: string;
 
 	@Prop({
 		unique: true,
@@ -57,15 +45,18 @@ export class Personnel extends BaseEntity {
 		description: 'Reference to the facility this personnel belongs to',
 	})
 	facility: Facility;
+
+	@Prop({
+		type: [ObjectId],
+		ref: 'PersonnelAccount',
+		description: 'References to the auth accounts belonging to this personnel',
+	})
+	personnelAccounts: PersonnelAccount[];
 }
 
 export const PersonnelSchema = SchemaFactory.createForClass(Personnel);
 
 PersonnelSchema.pre<Personnel>('save', async function () {
-	if (this.isModified('password')) {
-		this.password = await bcrypt.hash(this.password, 10);
-	}
-
 	if (this.isNew) {
 		this.isVerified = false;
 		this.referralCode = generateCode('CCREF', this.userName);

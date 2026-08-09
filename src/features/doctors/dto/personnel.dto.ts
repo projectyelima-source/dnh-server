@@ -3,6 +3,7 @@ import {
 	ApiPropertyOptional,
 	ApiResponseProperty,
 } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsEmail, IsOptional, IsString } from 'class-validator';
 import { GenericResponseDto } from '@/common/dto';
 import { FacilityDto } from '@/features/facilities/dto';
@@ -37,6 +38,9 @@ export class PersonnelDto extends GenericResponseDto {
 	})
 	@IsOptional()
 	@IsEmail()
+	@Transform(({ value }) =>
+		typeof value === 'string' ? value.toLowerCase().trim() : value,
+	)
 	email: string;
 
 	@ApiResponseProperty({
