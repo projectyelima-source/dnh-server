@@ -4,6 +4,7 @@ import {
 	NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ObjectId } from 'mongodb';
 import { Model } from 'mongoose';
 import { generateFilter } from '@/common/factory';
 import { AuthService } from '@/core/auth/auth.service';
@@ -26,21 +27,29 @@ export class PersonnelAccountsService {
 
 	async create(dto: CreatePersonnelAccountDto) {
 		const existingAccount = await this.personnelAccountModel.findOne({
-			provider: dto.provider,
+			provider: dto.provider || PersonnelProviders.EMAIL,
 			email: dto.email,
-			personnel: dto.personnel as any,
+			personnel: new ObjectId(dto.personnel),
 		});
 		if (existingAccount) {
 			throw new ConflictException('Account already exists');
 		}
 
 		const account = await this.personnelAccountModel.create({
-			provider: dto.provider,
+			provider: dto.provider || PersonnelProviders.EMAIL,
 			providerUserId: dto.providerUserId,
 			email: dto.email,
 			password: dto.password,
-			personnel: dto.personnel as any,
+			personnel: new ObjectId(dto.personnel),
 		});
+
+		await this.personnelAccountModel.db
+			.collection('personnels')
+			.updateOne(
+				{ _id: new ObjectId(dto.personnel) },
+				{ $push: { personnelAccounts: account._id } as any },
+			);
+
 		return account._id.toString();
 	}
 
