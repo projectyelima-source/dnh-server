@@ -28,6 +28,7 @@ import {
 	FilterPatientsDto,
 	FilterPatientsNoPaginateDto,
 	PatientQueryFilter,
+	UpdatePatientDto,
 } from './dto';
 import { Patient } from './entities/patient.entity';
 import { Summary } from './entities/summary.entity';
@@ -45,6 +46,13 @@ export class PatientsService {
 	async updatePatientById(id: string, update: Record<string, any>) {
 		const objectId = new Types.ObjectId(id);
 		return this.patientModel.findByIdAndUpdate(objectId, update);
+	}
+
+	async updatePatient(id: string, dto: UpdatePatientDto) {
+		const patient = await this.findPatientById(id);
+		if (!patient) throw new NotFoundException('Patient not found');
+		await this.updatePatientById(id, { $set: dto });
+		return patient._id.toString();
 	}
 
 	async fetchLatestPatientVitals(patientId: string) {

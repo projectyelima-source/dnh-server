@@ -27,6 +27,7 @@ import { MedicationsService } from '@/features/medications/medications.service';
 import {
 	FilterPatientsDto,
 	FilterPatientsNoPaginateDto,
+	UpdatePatientDto,
 } from '@/features/patients/dto';
 import { PatientsService } from '@/features/patients/patients.service';
 import {
@@ -335,6 +336,10 @@ export class HcpService {
 
 	async fetchLatestPatientVitals(patientId: string) {
 		return this.patientsService.fetchLatestPatientVitals(patientId);
+	}
+
+	async updatePatient(id: string, dto: UpdatePatientDto) {
+		return this.patientsService.updatePatient(id, dto);
 	}
 
 	async findOnePatient(id: string) {

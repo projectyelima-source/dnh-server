@@ -1,4 +1,5 @@
 export {
+	AgeOrDateOfBirthConstraint,
 	CreateAuthDto,
 	GoogleLoginDto,
 	OnboardDto,

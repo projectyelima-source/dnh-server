@@ -20,7 +20,9 @@ import {
 import { GenderEnum } from '@/features/patients/entities/patient.entity';
 
 @ValidatorConstraint({ name: 'ageOrDateOfBirth', async: false })
-class AgeOrDateOfBirthConstraint implements ValidatorConstraintInterface {
+export class AgeOrDateOfBirthConstraint
+	implements ValidatorConstraintInterface
+{
 	validate(_value: any, args: ValidationArguments) {
 		const dto = args.object as any;
 		return !!(dto.age || dto.dateOfBirth);
@@ -81,7 +83,7 @@ export class OnboardDto {
 		enum: GenderEnum,
 		example: 'male',
 	})
-	@IsEnum(GenderEnum)
+	@IsEnum(['male', 'female', 'other'])
 	gender: GenderEnum;
 
 	// @ApiPropertyOptional({ example: 'NHIS-123456789' })

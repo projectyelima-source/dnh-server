@@ -39,6 +39,7 @@ import {
 	GetPatientNoPaginateDto,
 	GetPersonnelPatientDto,
 	GetPersonnelPatientsDto,
+	UpdatePatientDto,
 } from '@/features/patients/dto';
 import {
 	BpTrendsQueryDto,
@@ -170,6 +171,27 @@ export class HcpController {
 				response,
 				HttpStatus.OK,
 				'Patient fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['updated', 'notfound', 'authorizeChronicCare'], {
+		message: 'Patient updated successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Patch('patients/:id')
+	async updatePatient(
+		@Param('id', ParseMongoIdPipe) id: string,
+		@Body() dto: UpdatePatientDto,
+	) {
+		try {
+			const response = await this.hcpService.updatePatient(id, dto);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Patient updated successfully',
 			);
 		} catch (error) {
 			throwError(this.logger, error);
