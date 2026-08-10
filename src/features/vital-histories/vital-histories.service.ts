@@ -39,7 +39,7 @@ export class VitalHistoriesService {
 	) {}
 
 	async loadVitalHistory(dto: LoadVitalHistoryDto, userId: string) {
-		// const severity = this.determineSeverity(dto.vitalType, dto.value);
+		const severity = this.determineSeverity(dto.vitalType, dto.value);
 		const unit =
 			dto.vitalType === 'bloodPressure'
 				? 'mmHg'
@@ -54,6 +54,7 @@ export class VitalHistoriesService {
 			value: dto.value,
 			unit,
 			recordedAt: dto.recordedAt,
+			severity,
 		});
 
 		return vitalHistory._id;
@@ -80,28 +81,38 @@ export class VitalHistoriesService {
 				return VitalSeverityEnum.CRITICAL;
 			}
 
-			if (systolic >= 130 || diastolic >= 85) {
+			if (
+				(systolic >= 120 && systolic <= 139) ||
+				(diastolic >= 80 && diastolic <= 89)
+			) {
 				return VitalSeverityEnum.ELEVATED;
+			}
+
+			if (systolic < 120 && diastolic < 80) {
+				return VitalSeverityEnum.NORMAL;
 			}
 
 			return VitalSeverityEnum.NORMAL;
 		}
 
 		if (vitalType === 'bloodSugar') {
-			const mgdl = Number.parseFloat(value);
+			const val = Number.parseFloat(value);
 
-			if (Number.isNaN(mgdl)) {
+			if (Number.isNaN(val)) {
 				return VitalSeverityEnum.NORMAL;
 			}
 
-			if (mgdl <= 3.9 || mgdl > 11.0) {
+			// Critically Low (<3.0 mmol/L) or Very High / Critical (>=13.9 mmol/L)
+			if (val < 3.0 || val >= 13.9) {
 				return VitalSeverityEnum.CRITICAL;
 			}
 
-			if (mgdl > 7.0) {
+			// Low (3.0 - 3.8 mmol/L) or Slightly High / High (7.3 - 13.8 mmol/L)
+			if ((val >= 3.0 && val <= 3.8) || (val >= 7.3 && val <= 13.8)) {
 				return VitalSeverityEnum.ELEVATED;
 			}
 
+			// In Target (3.9 - 7.2 mmol/L / 4.4 - 7.2 mmol/L)
 			return VitalSeverityEnum.NORMAL;
 		}
 
