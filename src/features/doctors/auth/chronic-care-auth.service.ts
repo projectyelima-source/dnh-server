@@ -116,7 +116,7 @@ export class ChronicCareAuthService {
 
 		const personnelAccount = await this.personnelAccountModel
 			.findOne({
-				$or: orQuery,
+				$and: orQuery,
 			})
 			.populate({
 				path: 'personnel',
