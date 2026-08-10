@@ -35,23 +35,32 @@ export class ChronicCareAuthService {
 	) {}
 
 	async create(dto: LoginPersonnelDto) {
-		const personnel = await this.personnelModel.create({
-			role: PersonnelRoles.CLINICIAN,
+		const existingAccount = await this.personnelAccountModel.findOne({
+			email: dto.email,
 		});
+
+		let personnelId: any = existingAccount?.personnel;
+
+		if (!personnelId) {
+			const personnel = await this.personnelModel.create({
+				role: PersonnelRoles.CLINICIAN,
+			});
+			personnelId = personnel._id;
+		}
 
 		const personnelAccount = await this.personnelAccountModel.create({
 			provider: dto.provider || PersonnelProviders.EMAIL,
 			providerUserId: dto.providerUserId,
 			email: dto.email,
 			password: dto.password,
-			personnel: personnel._id,
+			personnel: personnelId,
 		});
 
-		await this.personnelModel.findByIdAndUpdate(personnel._id, {
+		await this.personnelModel.findByIdAndUpdate(personnelId, {
 			$push: { personnelAccounts: personnelAccount._id },
 		});
 
-		return personnel._id;
+		return personnelId;
 	}
 
 	async onboard(dto: CreatePersonnelDto) {
