@@ -7,6 +7,7 @@ import { FirebaseService } from '@/core/firebase/firebase.service';
 import { IUserPayload } from '@/core/firebase/interface/user.interface';
 import {
 	AugurSendNotificationDto,
+	AugurTopicNotificationDto,
 	CreatePushDto,
 	PushToTopicDto,
 } from '../dto';
@@ -98,6 +99,34 @@ export class PushService {
 		// 	message,
 		// 	userId,
 		// });
+	}
+
+	async sendAugurTopicNotification(dto: AugurTopicNotificationDto) {
+		const { topic, title, body } = dto;
+
+		const message: Partial<Message> = {
+			notification: { title, body },
+			data: {
+				...(dto.chatId && { chat_id: dto.chatId }),
+				notification_type: dto.payload?.notification_type ?? 'zyptyk_ai',
+				click_action: 'FLUTTER_NOTIFICATION_CLICK',
+			},
+			android: {
+				priority: 'high',
+				notification: { channelId: 'high_importance_channel' },
+			},
+			apns: {
+				payload: {
+					aps: { sound: 'default', badge: 1, contentAvailable: true },
+				},
+			},
+		};
+
+		await this.pushNotificationToTopic(
+			topic,
+			message,
+			this.firebaseService.messaging,
+		);
 	}
 
 	async testActionNotification(dto: CreatePushDto) {

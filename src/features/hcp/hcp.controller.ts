@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	HttpStatus,
 	Logger,
@@ -15,6 +16,7 @@ import { CustomApiResponse, GetUser, Roles } from '@/common/decorators';
 import { ParseMongoIdPipe } from '@/common/decorators/validators/pipes';
 import {
 	ApiSuccessResponseDto,
+	ApiSuccessResponseNoData,
 	PaginatedDataResponseDto,
 	throwError,
 } from '@/common/utils/responses';
@@ -44,7 +46,12 @@ import {
 import {
 	BpTrendsQueryDto,
 	BpTrendsResponseDto,
+	CreateVitalHistoryDto,
+	FilterVitalHistoriesDto,
+	GetVitalHistoriesPersonnelDto,
 	GetVitalHistoryDto,
+	GetVitalHistoryPersonnelDto,
+	UpdateVitalHistoryDto,
 	UpdateVitalLogDto,
 	VitalHistoryTrendsQueryDto,
 	VitalHistoryTrendsResponseDto,
@@ -57,6 +64,112 @@ export class HcpController {
 	private logger = new Logger(HcpController.name);
 
 	constructor(private readonly hcpService: HcpService) {}
+
+	@CustomApiResponse(['created', 'authorizeChronicCare'], {
+		message: 'Vitals stored successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Post('vital-histories')
+	async createVitalHistory(
+		@Body() dto: CreateVitalHistoryDto,
+		@GetUser('sub') personnelId: string,
+	) {
+		try {
+			const response = await this.hcpService.createVitalHistory(
+				dto,
+				personnelId,
+			);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.CREATED,
+				'Vitals stored successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['paginated', 'authorizeChronicCare'], {
+		type: GetVitalHistoriesPersonnelDto,
+		message: 'Vital histories fetched successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Get('vital-histories')
+	async fetchVitalHistories(@Query() query: FilterVitalHistoriesDto) {
+		try {
+			const response = await this.hcpService.findAllVitalHistories(query);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows,
+				query.page,
+				query.pageSize,
+				response.count,
+			);
+			return new ApiSuccessResponseDto(
+				paginated,
+				HttpStatus.OK,
+				'Vital histories fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
+		type: GetVitalHistoryPersonnelDto,
+		message: 'Vital history fetched successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Get('vital-histories/:id')
+	async fetchVitalHistory(@Param('id', ParseMongoIdPipe) id: string) {
+		try {
+			const response = await this.hcpService.findVitalHistoryById(id);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Vital history fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['updated', 'notfound', 'authorizeChronicCare'], {
+		message: 'Vital history updated successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Patch('vital-histories/:id')
+	async updateVitalHistory(
+		@Param('id', ParseMongoIdPipe) id: string,
+		@Body() dto: UpdateVitalHistoryDto,
+	) {
+		try {
+			const response = await this.hcpService.updateVitalHistory(id, dto);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Vital history updated successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['successNull', 'notfound', 'authorizeChronicCare'], {
+		message: 'Vital history deleted successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Delete('vital-histories/:id')
+	async deleteVitalHistory(@Param('id', ParseMongoIdPipe) id: string) {
+		try {
+			await this.hcpService.deleteVitalHistory(id);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Vital history deleted successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
 
 	@CustomApiResponse(['created', 'authorizeChronicCare'], {
 		message: 'Appointment created successfully',
@@ -137,12 +250,8 @@ export class HcpController {
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
 	@Get('patients/no-paginate')
-	async findAllPatientsNoPaginate(
-		@Query() query: FilterPatientsNoPaginateDto,
-		@GetUser('facility') facility?: string,
-	) {
+	async findAllPatientsNoPaginate(@Query() query: FilterPatientsNoPaginateDto) {
 		try {
-			if (facility) query.facility = facility;
 			const response = await this.hcpService.findAllPatientsNoPaginate(query);
 			return new ApiSuccessResponseDto(
 				response,

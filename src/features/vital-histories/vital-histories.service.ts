@@ -1,27 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { addDays, format, getWeekOfMonth } from 'date-fns';
 import { Model, Types } from 'mongoose';
 import { v7 as uuidv7 } from 'uuid';
 import { generateFilter } from '@/common/factory';
 import { PatientsService } from '@/features/patients/patients.service';
 import { flattenMeta } from '../../common/entities/base-dh.entity';
 import { CreateDhVectorDto, DHDocumentType } from '../dh-vectors/dto';
+import { PushService } from '../notifications/push/push.service';
 import {
 	BpTrendsQueryDto,
-	BpTrendsResponseDto,
 	CreateVitalHistoryDto,
-	DateRange,
 	FilterVitalHistoriesDto,
-	fullDayMap,
 	getDateRangeFilter,
 	LoadVitalHistoryDto,
-	shortenedDay,
 	UpdateVitalHistoryDto,
 	UpdateVitalLogDto,
 	VitalHistoryQueryFilter,
 	VitalHistoryTrendsQueryDto,
-	VitalHistoryTrendsResponseDto,
 	VitalHistoryUpsertInput,
 	VitalTypes,
 } from './dto';
@@ -36,6 +31,7 @@ export class VitalHistoriesService {
 		@InjectModel(VitalHistory.name)
 		private vitalHistoryModel: Model<VitalHistory>,
 		private readonly patientsService: PatientsService,
+		private readonly pushService: PushService,
 	) {}
 
 	async loadVitalHistory(dto: LoadVitalHistoryDto, userId: string) {
@@ -46,7 +42,24 @@ export class VitalHistoriesService {
 				: dto.vitalType === 'bloodSugar'
 					? 'mmol/L'
 					: '';
+		const [userBody, personnelBody] = this.buildVitalNotificationBody(
+			dto.vitalType,
+			severity,
+		);
 
+		await this.pushService.sendAugurNotification({
+			userId: userId,
+			title: 'Yelima',
+			body: userBody,
+		});
+
+		if (severity === VitalSeverityEnum.CRITICAL) {
+			await this.pushService.sendAugurTopicNotification({
+				topic: 'health-personnel',
+				title: 'Critical Patient Reading',
+				body: personnelBody,
+			});
+		}
 		const vitalHistory = await this.vitalHistoryModel.create({
 			userId,
 			patient: new Types.ObjectId(dto.patient),
@@ -117,6 +130,41 @@ export class VitalHistoriesService {
 		}
 
 		return VitalSeverityEnum.NORMAL;
+	}
+
+	private buildVitalNotificationBody(
+		vitalType: string,
+		severity: VitalSeverityEnum,
+	): [userMessage: string, personnelMessage: string] {
+		const vitalLabels: Record<string, string> = {
+			bloodPressure: 'blood pressure',
+			bloodSugar: 'blood sugar',
+			heartRate: 'heart rate',
+			temperature: 'temperature',
+			respirationRate: 'respiration rate',
+			oxygenSaturation: 'oxygen saturation',
+			weight: 'weight',
+		};
+
+		const label = vitalLabels[vitalType] ?? vitalType;
+
+		switch (severity) {
+			case VitalSeverityEnum.CRITICAL:
+				return [
+					`Thanks for logging your ${label}. Your readings are critically out of range — please consult your doctor as soon as possible.`,
+					`Critical alert: a patient has logged a ${label} reading that is critically out of range. Please review and follow up immediately.`,
+				];
+			case VitalSeverityEnum.ELEVATED:
+				return [
+					`Thanks for logging your ${label}. Your readings are slightly elevated — keep monitoring and stay in touch with your care team.`,
+					`Notice: a patient has logged an elevated ${label} reading. You may want to check in with them.`,
+				];
+			default:
+				return [
+					`Thanks for logging your ${label}. Your readings look normal — keep it up!`,
+					`A patient has logged a normal ${label} reading.`,
+				];
+		}
 	}
 
 	async create(dto: CreateVitalHistoryDto, personnelId: string) {
@@ -797,50 +845,6 @@ export class VitalHistoriesService {
 		};
 	}
 
-	private normalizeBpChartData(
-		dateRange: DateRange,
-		data: BpTrendsResponseDto,
-		timestamp: { $gte: Date; $lte: Date },
-	) {
-		const weekLabels: string[] = this.getLabels(dateRange, timestamp);
-		const monthLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-
-		if (data.labels.includes('Week 5')) {
-			monthLabels.push('Week 5');
-		}
-
-		if (dateRange === DateRange.TODAY) {
-			return data;
-		}
-
-		const labels = dateRange === DateRange.THIS_WEEK ? weekLabels : monthLabels;
-
-		const systolic = labels.map((label) => {
-			const index = data.labels.indexOf(label);
-
-			const val = !data.systolic[index]
-				? null
-				: +data.systolic[index].toFixed(2);
-			return val;
-		});
-
-		const diastolic = labels.map((label) => {
-			const index = data.labels.indexOf(label);
-
-			const val = !data.diastolic[index]
-				? null
-				: +data.diastolic[index].toFixed(2);
-			return val;
-		});
-
-		let labelFormatted = labels;
-
-		if (dateRange === DateRange.THIS_WEEK) {
-			labelFormatted = labels.map((label) => shortenedDay[label]);
-		}
-		return { labels: labelFormatted, systolic, diastolic };
-	}
-
 	async fetchVitalTrend(userId: string, query: VitalHistoryTrendsQueryDto) {
 		const { vitalType, dateRange } = query;
 		const { timestamp } = getDateRangeFilter(dateRange)!;
@@ -898,98 +902,6 @@ export class VitalHistoriesService {
 			latestValue: latest ? Number(latest.value) : null,
 			note: latest?.notes ?? null,
 		};
-	}
-
-	private normalizeChartData(
-		dateRange: DateRange,
-		data: VitalHistoryTrendsResponseDto,
-		timestamp: { $gte: Date; $lte: Date },
-	) {
-		const weekLabels: string[] = this.getLabels(dateRange, timestamp);
-
-		const monthLabels = ['Week 1', 'Week 2', 'Week 3', 'Week 4'];
-
-		if (data.labels.includes('Week 5')) {
-			monthLabels.push('Week 5');
-		}
-
-		const labels = dateRange === DateRange.THIS_WEEK ? weekLabels : monthLabels;
-
-		if (dateRange === DateRange.TODAY) {
-			return data;
-		}
-
-		// Build new values array matching the desired labels
-		const values = labels.map((label) => {
-			const index = data.labels.indexOf(label);
-			return data.values[index] ? +data.values[index].toFixed(2) : null;
-		});
-
-		let labelFormatted = labels;
-
-		if (dateRange === DateRange.THIS_WEEK) {
-			labelFormatted = labels.map((label) => shortenedDay[label]);
-		}
-
-		return { labels: labelFormatted, values: values || [] };
-	}
-
-	/**
-	 * Formats an array of date labels based on the active date range.
-	 *
-	 * @param labels - Array of ISO date strings
-	 * @param range - The selected date range
-	 * @returns Formatted labels for charts
-	 */
-	private formatLabels(labels: string[], range: DateRange): string[] {
-		const formatedLabels = labels.map((label) => {
-			const date = new Date(label);
-
-			switch (range) {
-				case DateRange.TODAY:
-					return format(date, 'hh:mm a');
-
-				case DateRange.THIS_WEEK:
-					return format(date, 'E');
-
-				case DateRange.THIS_MONTH:
-				case DateRange.LAST_MONTH:
-					return `Week ${getWeekOfMonth(date)}`;
-
-				default:
-					return label;
-			}
-		});
-
-		return this.expandDuplicateDays(formatedLabels);
-	}
-
-	private getLabels(range: DateRange, timestamp: { $gte: Date; $lte: Date }) {
-		switch (range) {
-			case DateRange.THIS_WEEK: {
-				let labelRange: string[] = [];
-				for (let i = 0; i <= 7; i++) {
-					labelRange.push(addDays(timestamp.$gte, i).toISOString());
-				}
-				const rangeStr = this.formatLabels(labelRange, range);
-				return rangeStr;
-			}
-			default:
-				return [];
-		}
-	}
-
-	private expandDuplicateDays(days: string[]): string[] {
-		const seen = new Set<string>();
-
-		return days.map((day) => {
-			if (!seen.has(day)) {
-				seen.add(day);
-				return day;
-			}
-
-			return fullDayMap[day] ?? day;
-		});
 	}
 
 	async removeByUserId(userId: string) {

@@ -1,5 +1,6 @@
 export {
 	AugurSendNotificationDto,
+	AugurTopicNotificationDto,
 	CreateNotificationDto,
 	CreatePushDto,
 	PushToTopicDto,

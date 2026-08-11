@@ -102,7 +102,7 @@ export function CustomApiResponse(
 					...[
 						ApiUnauthorizedResponse({
 							type: ApiErrorResponse,
-							description: 'Unauthorized access.Zyptyk Client Token Required',
+							description: 'Unauthorized access.Yelima Client Token Required',
 						}),
 						Authorize(UserType.DH_CLIENTS),
 					],

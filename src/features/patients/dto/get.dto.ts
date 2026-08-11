@@ -5,7 +5,8 @@ import {
 	OmitType,
 	PickType,
 } from '@nestjs/swagger';
-import { IsEnum, IsOptional } from 'class-validator';
+import { Expose } from 'class-transformer';
+import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
 import { GenericResponseDto, PaginationRequestDto } from '@/common/dto';
 import { AdherenceStatus, PatientDto } from './patient.dto';
 
@@ -122,6 +123,14 @@ export class FilterPatientsDto extends PaginationRequestDto {
 	@IsEnum(FilterBy)
 	filterBy?: FilterBy;
 
+	@ApiPropertyOptional({
+		name: 'facilityId',
+		example: '664b7f8e2c2a1e4b8f1d2c3a',
+	})
+	@IsOptional()
+	@IsString()
+	@IsMongoId()
+	@Expose({ name: 'facilityId' })
 	facility?: string;
 }
 
@@ -129,5 +138,13 @@ export class FilterPatientsNoPaginateDto extends PickType(
 	PaginationRequestDto,
 	['search', 'searchFields'],
 ) {
+	@ApiPropertyOptional({
+		name: 'facilityId',
+		example: '664b7f8e2c2a1e4b8f1d2c3a',
+	})
+	@IsOptional()
+	@IsString()
+	@IsMongoId()
+	@Expose({ name: 'facilityId' })
 	facility?: string;
 }

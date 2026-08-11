@@ -18,7 +18,7 @@ export class ChronicleerService {
 			this.llm.withStructuredOutput<AiInsights>(SummarySchema);
 
 		const promptTemplate = PromptTemplate.fromTemplate(
-			'You are the Summary Generator for Zyptyk AI. Given the full conversation history, generate the summary. Conversation History: {conversationHistory}',
+			'You are the Summary Generator for Yelima AI. Given the full conversation history, generate the summary. Conversation History: {conversationHistory}',
 		);
 
 		const prompt = await promptTemplate.invoke({

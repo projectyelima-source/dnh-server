@@ -161,7 +161,7 @@ export class NotificationsConsumer extends WorkerHost {
 
 		await this.pushService.sendAugurNotification({
 			userId: notification.patient.userId,
-			title: 'Zyptyk AI',
+			title: 'Yelima AI',
 			body: output.content.toString(),
 		});
 

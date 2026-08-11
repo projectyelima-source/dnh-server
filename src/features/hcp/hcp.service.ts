@@ -32,6 +32,9 @@ import {
 import { PatientsService } from '@/features/patients/patients.service';
 import {
 	BpTrendsQueryDto,
+	CreateVitalHistoryDto,
+	FilterVitalHistoriesDto,
+	UpdateVitalHistoryDto,
 	UpdateVitalLogDto,
 	VitalHistoryTrendsQueryDto,
 } from '@/features/vital-histories/dto';
@@ -47,6 +50,26 @@ export class HcpService {
 		private readonly vitalHistoriesService: VitalHistoriesService,
 		private readonly appointmentsService: AppointmentsService,
 	) {}
+
+	async createVitalHistory(dto: CreateVitalHistoryDto, personnelId: string) {
+		return this.vitalHistoriesService.create(dto, personnelId);
+	}
+
+	async findAllVitalHistories(query: FilterVitalHistoriesDto) {
+		return this.vitalHistoriesService.findAll(query);
+	}
+
+	async findVitalHistoryById(id: string) {
+		return this.vitalHistoriesService.findOne(id);
+	}
+
+	async updateVitalHistory(id: string, dto: UpdateVitalHistoryDto) {
+		return this.vitalHistoriesService.update(id, dto);
+	}
+
+	async deleteVitalHistory(id: string) {
+		return this.vitalHistoriesService.remove(id);
+	}
 
 	async findAllPatients(query: FilterPatientsDto) {
 		return this.patientsService.findAll(query);

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PatientsModule } from '@/features/patients/patients.module';
 import { DhVectorsModule } from '../dh-vectors/dh-vectors.module';
+import { AugurNotificationsModule } from '../notifications/notifications.module';
 import {
 	VitalHistory,
 	VitalHistorySchema,
@@ -16,6 +17,7 @@ import { VitalHistoriesService } from './vital-histories.service';
 		]),
 		DhVectorsModule,
 		PatientsModule,
+		AugurNotificationsModule,
 	],
 	controllers: [VitalHistoriesController],
 	providers: [VitalHistoriesService],

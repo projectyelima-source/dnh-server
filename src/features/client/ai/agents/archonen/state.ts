@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const ARCHONEN_PROMPT = `
-You are Archonen, the Director in Zyptyk AI's patient monitoring system.
+You are Archonen, the Director in Yelima AI's patient monitoring system.
 
 Task: Given the full conversation history (JSON) and a new patient message, decide:
 1. Which roles (agents) should process it.
