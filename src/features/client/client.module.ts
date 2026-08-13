@@ -6,6 +6,7 @@ import { ConcernsModule } from '../concerns/concerns.module';
 import { DhVectorsModule } from '../dh-vectors/dh-vectors.module';
 import { FacilitiesModule } from '../facilities/facilities.module';
 import { MedicationsModule } from '../medications/medications.module';
+import { AugurNotificationsModule } from '../notifications/notifications.module';
 import { PatientsModule } from '../patients/patients.module';
 import { VitalHistoriesModule } from '../vital-histories/vital-histories.module';
 import { AiModule } from './ai/ai.module';
@@ -26,6 +27,7 @@ import { ClientService } from './client.service';
 		VitalHistoriesModule,
 		AppointmentsModule,
 		FacilitiesModule,
+		AugurNotificationsModule,
 	],
 })
 export class ClientModule {}

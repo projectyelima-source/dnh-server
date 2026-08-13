@@ -370,6 +370,13 @@ export class PatientsService {
 		return this.patientModel.findOne({ userId }).select(projection || '');
 	}
 
+	async findPatientByPhoneNumber(
+		phoneNumber: string,
+		projection?: string,
+	): Promise<Patient | null> {
+		return this.patientModel.findOne({ phoneNumber }).select(projection || '');
+	}
+
 	async countPatientsByUserId(userId: string): Promise<number> {
 		return this.patientModel.countDocuments({ userId });
 	}

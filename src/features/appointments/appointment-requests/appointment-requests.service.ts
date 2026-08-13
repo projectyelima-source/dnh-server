@@ -16,7 +16,12 @@ export class AppointmentRequestsService {
 		private readonly appointmentRequestModel: Model<AppointmentRequest>,
 	) {}
 
-	create(dto: CreateAppointmentRequestDto & { patient?: Types.ObjectId }) {
+	create(
+		dto: CreateAppointmentRequestDto & {
+			patient?: Types.ObjectId;
+			host?: Types.ObjectId;
+		},
+	) {
 		return this.appointmentRequestModel.create(dto);
 	}
 
@@ -26,6 +31,31 @@ export class AppointmentRequestsService {
 
 		const filter: Record<string, any> = {};
 		if (patientId) filter.patient = new Types.ObjectId(patientId);
+
+		const [rows, count] = await Promise.all([
+			this.appointmentRequestModel
+				.find(filter)
+				.skip(pageFilter.offset)
+				.limit(pageFilter.limit)
+				.sort(pageFilter.orderBy),
+			this.appointmentRequestModel.countDocuments(filter),
+		]);
+
+		return { rows, count };
+	}
+
+	async findAllForFacility(
+		facilityId: string,
+		patientId: string,
+		query: GetAppointmentRequestsQueryDto,
+	) {
+		const { pageFilter } = generateFilter(query);
+		pageFilter.orderBy = { createdAt: -1 };
+
+		const filter: Record<string, any> = {
+			host: new Types.ObjectId(facilityId),
+			patient: new Types.ObjectId(patientId),
+		};
 
 		const [rows, count] = await Promise.all([
 			this.appointmentRequestModel

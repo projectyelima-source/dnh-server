@@ -62,6 +62,7 @@ import { MedicationsService } from '@/features/medications/medications.service';
 import { SeededMedsService } from '@/features/medications/seeded-meds/seeded-meds.service';
 import type { Frequency } from '@/features/notifications/dto/notification.dto';
 import { NotificationsService } from '@/features/notifications/notifications.service';
+import { PushService } from '@/features/notifications/push/push.service';
 import { PatientsService } from '@/features/patients/patients.service';
 import { VitalHistoriesService } from '@/features/vital-histories/vital-histories.service';
 import { DhVectorsService } from '../dh-vectors/dh-vectors.service';
@@ -109,6 +110,7 @@ export class ClientService {
 		private readonly seededMedsService: SeededMedsService,
 		private readonly facilitiesService: FacilitiesService,
 		private readonly eventEmitter: EventEmitter2,
+		private readonly pushService: PushService,
 	) {
 		this.checkpointModel = this.connection.collection('checkpoints');
 		this.checkpointWritesModel =
@@ -389,12 +391,33 @@ export class ClientService {
 	) {
 		const patient = await this.patientsService.findPatientByUserId(
 			userId,
-			'_id',
+			'_id facility',
 		);
-		return this.appointmentRequestsService.create({
+
+		const request = await this.appointmentRequestsService.create({
 			...dto,
 			patient: patient!._id as any,
+			host: patient!.facility as any,
 		});
+
+		const facilityId = patient!.facility?.toString();
+		if (facilityId) {
+			this.pushService.sendNotificationToTopic(
+				() => ({
+					notification: {
+						title: 'New Appointment Request',
+						body: 'A patient has submitted an appointment request at your facility.',
+					},
+					data: {
+						notification_type: 'appointment_request',
+						click_action: 'FLUTTER_NOTIFICATION_CLICK',
+					},
+				}),
+				facilityId,
+			);
+		}
+
+		return request;
 	}
 
 	async fetchAppointmentRequests(query: ChronicCareQueryDto, userId: string) {
@@ -718,7 +741,7 @@ export class ClientService {
 	async logVitalHistory(dto: LoadVitalHistoryDto, userId: string) {
 		const patient = await this.patientsService.findPatientByUserId(
 			userId,
-			'_id',
+			'_id facility',
 		);
 
 		if (!patient) {
@@ -728,6 +751,7 @@ export class ClientService {
 		return this.vitalHistoryService.loadVitalHistory(
 			{ ...dto, patient: patient._id.toString() },
 			userId,
+			patient.facility?.toString(),
 		);
 	}
 

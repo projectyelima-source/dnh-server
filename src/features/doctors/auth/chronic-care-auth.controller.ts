@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	Get,
 	Headers,
 	HttpCode,
@@ -9,12 +10,13 @@ import {
 	Post,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import { CustomApiResponse, GetUser } from '@/common/decorators';
+import { Authorize, CustomApiResponse, GetUser } from '@/common/decorators';
 import {
 	ApiSuccessResponseDto,
 	ApiSuccessResponseNoData,
 	throwError,
 } from '@/common/utils/responses';
+import { UserType } from '@/core/auth/enums';
 import { GenerateOtpDto, VerifyOtpDto } from '@/core/security/otp/dto';
 import { ChronicCareAuthService } from './chronic-care-auth.service';
 import {
@@ -132,6 +134,23 @@ export class ChronicCareAuthController {
 			return new ApiSuccessResponseNoData(
 				HttpStatus.OK,
 				'OTP verified successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['successNull', 'authorizeChronicCare'], {
+		message: 'Personnel account deleted successfully',
+	})
+	@Authorize(UserType.CHRONIC_CARE)
+	@Delete()
+	async deletePersonnel(@GetUser('sub') personnelId: string) {
+		try {
+			await this.authService.deletePersonnel(personnelId);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Personnel account deleted successfully',
 			);
 		} catch (error) {
 			throwError(this.logger, error);

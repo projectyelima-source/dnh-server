@@ -203,6 +203,15 @@ export class ChronicCareAuthService {
 		}
 	}
 
+	async deletePersonnel(personnelId: string): Promise<void> {
+		const personnel = await this.personnelModel.findById(personnelId);
+		if (!personnel) {
+			throw new NotFoundException('Personnel not found');
+		}
+		await this.personnelAccountModel.deleteMany({ personnel: personnelId });
+		await this.personnelModel.findByIdAndDelete(personnelId);
+	}
+
 	async findAuthenticated(id: string) {
 		const personnel = await this.personnelModel
 			.findById(id)

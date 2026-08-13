@@ -2,7 +2,7 @@ export class PatientPayload {
 	userId: string;
 	patientId: string;
 	name: string;
-	phoneNumber: string;
+	phoneNumber?: string;
 	chronicConditions?: string[];
 }
 
@@ -70,13 +70,13 @@ export class PatientDto {
 	@IsNotEmpty()
 	name: string;
 
-	@ApiProperty({
+	@ApiPropertyOptional({
 		description: 'The phone number of the patient in E.164 format',
 		example: '+2335544123',
 	})
+	@IsOptional()
 	@IsString()
-	@IsNotEmpty()
-	phoneNumber: string;
+	phoneNumber?: string;
 
 	@ApiProperty({
 		description: 'Year Of Birth of the patient',

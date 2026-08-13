@@ -45,6 +45,7 @@ export class AppointmentsService {
 		dto: CreatePatientAppointmentDto,
 		patientId: string,
 		personnelId: string,
+		facilityId?: string,
 	) {
 		const patient = await this.patientsService.findPatientById(patientId);
 		if (!patient) throw new NotFoundException('Patient not found');
@@ -55,6 +56,7 @@ export class AppointmentsService {
 			hostPersonnel: new Types.ObjectId(personnelId),
 			userId: patient.userId,
 			patient: new Types.ObjectId(patientId),
+			...(facilityId && { host: new Types.ObjectId(facilityId) }),
 		});
 
 		return appointment._id;

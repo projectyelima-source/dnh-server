@@ -22,6 +22,11 @@ import {
 } from '@/common/utils/responses';
 import { PersonnelRoles } from '@/core/auth/enums';
 import {
+	GetAppointmentRequestDto,
+	GetAppointmentRequestsQueryDto,
+	UpdateAppointmentRequestStatusDto,
+} from '@/features/appointments/appointment-requests/dto';
+import {
 	AppointmentDto,
 	CancelAppointmentDto,
 	CreatePatientAppointmentDto,
@@ -179,12 +184,14 @@ export class HcpController {
 	async createPatientAppointment(
 		@Param('patientId') patientId: string,
 		@GetUser('sub', ParseMongoIdPipe) personnelId: string,
+		@GetUser('facility') facilityId: string,
 		@Body() dto: CreatePatientAppointmentDto,
 	) {
 		try {
 			const response = await this.hcpService.createPatientAppointment(
 				patientId,
 				personnelId,
+				facilityId,
 				dto,
 			);
 			return new ApiSuccessResponseDto(
@@ -518,6 +525,116 @@ export class HcpController {
 				paginated,
 				HttpStatus.OK,
 				'Appointments fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['paginated', 'authorizeChronicCare'], {
+		type: GetAppointmentRequestDto,
+		message: 'Appointment requests fetched successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Get('patients/:patientId/appointment-requests')
+	async findPatientAppointmentRequests(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@GetUser('facility') facilityId: string,
+		@Query() query: GetAppointmentRequestsQueryDto,
+	) {
+		try {
+			const response = await this.hcpService.findPatientAppointmentRequests(
+				patientId,
+				facilityId,
+				query,
+			);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows,
+				query.page,
+				query.pageSize,
+				response.count,
+			);
+			return new ApiSuccessResponseDto(
+				paginated,
+				HttpStatus.OK,
+				'Appointment requests fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
+		type: GetAppointmentRequestDto,
+		message: 'Appointment request fetched successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Get('patients/:patientId/appointment-requests/:id')
+	async findPatientAppointmentRequest(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@Param('id', ParseMongoIdPipe) id: string,
+	) {
+		try {
+			const response = await this.hcpService.findPatientAppointmentRequest(
+				patientId,
+				id,
+			);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Appointment request fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
+		type: GetAppointmentRequestDto,
+		message: 'Appointment request status updated successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Patch('patients/:patientId/appointment-requests/:id')
+	async updatePatientAppointmentRequestStatus(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@Param('id', ParseMongoIdPipe) id: string,
+		@GetUser('sub') personnelId: string,
+		@GetUser('facility') facilityId: string,
+		@Body() dto: UpdateAppointmentRequestStatusDto,
+	) {
+		try {
+			const response =
+				await this.hcpService.updatePatientAppointmentRequestStatus(
+					patientId,
+					id,
+					dto,
+					personnelId,
+					facilityId,
+				);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Appointment request status updated successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['successNull', 'notfound', 'authorizeChronicCare'], {
+		message: 'Appointment request deleted successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Delete('patients/:patientId/appointment-requests/:id')
+	async deletePatientAppointmentRequest(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@Param('id', ParseMongoIdPipe) id: string,
+	) {
+		try {
+			await this.hcpService.deletePatientAppointmentRequest(patientId, id);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Appointment request deleted successfully',
 			);
 		} catch (error) {
 			throwError(this.logger, error);

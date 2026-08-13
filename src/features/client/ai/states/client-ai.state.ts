@@ -21,7 +21,7 @@ export interface PatientState {
 	userId: string;
 	patientId: string;
 	name: string;
-	phoneNumber: string;
+	phoneNumber?: string;
 	language: string;
 	chronicConditions?: string[];
 }

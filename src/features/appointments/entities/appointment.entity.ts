@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { BaseEntity } from '@/common/entities';
 import { deleteByPattern } from '@/core/caching/utils';
 import { Personnel } from '@/features/doctors/entities/personnel.entity';
+import { Facility } from '@/features/facilities/entities/facility.entity';
 import { Patient } from '@/features/patients/entities/patient.entity';
 import { AppointmentStatus } from '../dto';
 
@@ -47,6 +48,13 @@ export class Appointment extends BaseEntity {
 			'Reference to the personnel (doctor/pharmacist) meeting the patient',
 	})
 	hostPersonnel: Personnel;
+
+	@Prop({
+		type: ObjectId,
+		ref: 'Facility',
+		description: 'Medical facility this appointment belongs to',
+	})
+	host: Facility;
 
 	@Prop({
 		description: 'User ID associated with the appointment (3–50 characters)',

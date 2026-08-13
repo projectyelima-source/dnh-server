@@ -13,6 +13,7 @@ import { MedicationsModule } from './medications/medications.module';
 import { AugurNotificationsModule } from './notifications/notifications.module';
 import { PatientsModule } from './patients/patients.module';
 import { PharmaciesModule } from './pharmacies/pharmacies.module';
+import { UssdModule } from './ussd/ussd.module';
 import { VitalHistoriesModule } from './vital-histories/vital-histories.module';
 
 @Module({
@@ -32,6 +33,7 @@ import { VitalHistoriesModule } from './vital-histories/vital-histories.module';
 		FacilitiesModule,
 		HcpModule,
 		ChatModule,
+		UssdModule,
 	],
 })
 export class FeaturesModule {}

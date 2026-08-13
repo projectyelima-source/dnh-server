@@ -8,4 +8,7 @@ export {
 	GetAppointmentRequestDto,
 	GetAppointmentRequestsQueryDto,
 } from './get.dto';
-export { UpdateAppointmentRequestDto } from './update.dto';
+export {
+	UpdateAppointmentRequestDto,
+	UpdateAppointmentRequestStatusDto,
+} from './update.dto';

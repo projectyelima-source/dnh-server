@@ -34,7 +34,11 @@ export class VitalHistoriesService {
 		private readonly pushService: PushService,
 	) {}
 
-	async loadVitalHistory(dto: LoadVitalHistoryDto, userId: string) {
+	async loadVitalHistory(
+		dto: LoadVitalHistoryDto,
+		userId: string,
+		facilityId?: string,
+	) {
 		const severity = this.determineSeverity(dto.vitalType, dto.value);
 		const unit =
 			dto.vitalType === 'bloodPressure'
@@ -53,12 +57,20 @@ export class VitalHistoriesService {
 			body: userBody,
 		});
 
-		if (severity === VitalSeverityEnum.CRITICAL) {
-			await this.pushService.sendAugurTopicNotification({
-				topic: 'health-personnel',
-				title: 'Critical Patient Reading',
-				body: personnelBody,
-			});
+		if (severity === VitalSeverityEnum.CRITICAL && facilityId) {
+			this.pushService.sendNotificationToTopic(
+				() => ({
+					notification: {
+						title: 'Critical Patient Reading',
+						body: personnelBody,
+					},
+					data: {
+						notification_type: 'critical_vital',
+						click_action: 'FLUTTER_NOTIFICATION_CLICK',
+					},
+				}),
+				facilityId,
+			);
 		}
 		const vitalHistory = await this.vitalHistoryModel.create({
 			userId,

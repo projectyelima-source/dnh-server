@@ -11,6 +11,12 @@ import { Types } from 'mongoose';
 import { generateFilter } from '@/common/factory';
 import { AdherencesService } from '@/features/adherences/adherences.service';
 import { TargetType } from '@/features/adherences/dto';
+import { AppointmentRequestsService } from '@/features/appointments/appointment-requests/appointment-requests.service';
+import {
+	AppointmentRequestStatus,
+	GetAppointmentRequestsQueryDto,
+	UpdateAppointmentRequestStatusDto,
+} from '@/features/appointments/appointment-requests/dto';
 import { AppointmentsService } from '@/features/appointments/appointments.service';
 import {
 	CancelAppointmentDto,
@@ -24,6 +30,7 @@ import {
 	MedicationAdherenceLogsDto,
 } from '@/features/medications/dto';
 import { MedicationsService } from '@/features/medications/medications.service';
+import { PushService } from '@/features/notifications/push/push.service';
 import {
 	FilterPatientsDto,
 	FilterPatientsNoPaginateDto,
@@ -49,6 +56,8 @@ export class HcpService {
 		private readonly adherencesService: AdherencesService,
 		private readonly vitalHistoriesService: VitalHistoriesService,
 		private readonly appointmentsService: AppointmentsService,
+		private readonly appointmentRequestsService: AppointmentRequestsService,
+		private readonly pushService: PushService,
 	) {}
 
 	async createVitalHistory(dto: CreateVitalHistoryDto, personnelId: string) {
@@ -82,6 +91,7 @@ export class HcpService {
 	async createPatientAppointment(
 		patientId: string,
 		personnelId: string,
+		facilityId: string,
 		dto: CreatePatientAppointmentDto,
 	) {
 		const patient = await this.patientsService.findPatientById(
@@ -97,6 +107,7 @@ export class HcpService {
 			dto,
 			patientId,
 			personnelId,
+			facilityId,
 		);
 	}
 
@@ -181,6 +192,99 @@ export class HcpService {
 			appointmentId,
 			personnelId,
 		);
+	}
+
+	async findPatientAppointmentRequests(
+		patientId: string,
+		facilityId: string,
+		query: GetAppointmentRequestsQueryDto,
+	) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		return this.appointmentRequestsService.findAllForFacility(
+			facilityId,
+			patientId,
+			query,
+		);
+	}
+
+	async findPatientAppointmentRequest(patientId: string, id: string) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		const request = await this.appointmentRequestsService.findOne(id);
+		if (!request) throw new NotFoundException('Appointment request not found');
+		return request;
+	}
+
+	async updatePatientAppointmentRequestStatus(
+		patientId: string,
+		id: string,
+		dto: UpdateAppointmentRequestStatusDto,
+		personnelId: string,
+		facilityId: string,
+	) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id userId',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+
+		const request = await this.appointmentRequestsService.findOne(id);
+		if (!request) throw new NotFoundException('Appointment request not found');
+
+		const updated = await this.appointmentRequestsService.update(id, {
+			status: dto.status,
+		});
+
+		if (dto.status === AppointmentRequestStatus.APPROVED) {
+			await this.appointmentsService.createPatientAppointment(
+				{
+					title: `${request.type} Appointment`,
+					description: request.description,
+					appointmentDate: request.preferredDate?.toISOString(),
+				},
+				patientId,
+				personnelId,
+				facilityId,
+			);
+		}
+
+		const isApproved = dto.status === AppointmentRequestStatus.APPROVED;
+		this.pushService.sendNotification(
+			() => ({
+				notification: {
+					title: 'Appointment Request Update',
+					body: isApproved
+						? 'Your appointment request has been approved.'
+						: 'Your appointment request has been rejected.',
+				},
+				data: {
+					notification_type: 'appointment_request_status',
+					status: dto.status,
+					click_action: 'FLUTTER_NOTIFICATION_CLICK',
+				},
+			}),
+			patient.userId,
+		);
+
+		return updated;
+	}
+
+	async deletePatientAppointmentRequest(patientId: string, id: string) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		const request = await this.appointmentRequestsService.findOne(id);
+		if (!request) throw new NotFoundException('Appointment request not found');
+		return this.appointmentRequestsService.remove(id);
 	}
 
 	async findPatientVitalHistoryLogs(

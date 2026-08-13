@@ -16,6 +16,7 @@ export class CreatePatientDto extends PickType(PatientDto, [
 	'name',
 	'gender',
 	'timezone',
+	'phoneNumber',
 ]) {
 	chronicConditions: string[];
 
