@@ -25,4 +25,4 @@ export {
 } from './patient.schema';
 export { SummaryDto } from './summary.dto';
 export { type SummarySchema } from './summary.schema';
-export { UpdatePatientDto } from './update.dto';
+export { CreatePharmacyPatientDto, UpdatePatientDto } from './update.dto';

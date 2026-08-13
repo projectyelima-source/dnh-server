@@ -112,7 +112,14 @@ export class GetPatientNoPaginateDto extends IntersectionType(
 ) {}
 
 export class FilterPatientsDto extends PaginationRequestDto {
-	personnelId: string;
+	@ApiPropertyOptional({
+		description: 'Filter patients by the personnel who has visited them',
+		example: '664b7f8e2c2a1e4b8f1d2c3a',
+	})
+	@IsOptional()
+	@IsString()
+	@IsMongoId()
+	personnelId?: string;
 
 	@ApiPropertyOptional({
 		description: 'Filter patients by condition or adherence status',

@@ -1,15 +1,17 @@
 import {
+	Body,
 	Controller,
 	Get,
 	HttpStatus,
 	Logger,
 	Param,
+	Post,
 	Query,
 	Sse,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { catchError, map, Observable, of } from 'rxjs';
-import { CustomApiResponse, GetUser } from '@/common/decorators';
+import { CustomApiResponse } from '@/common/decorators';
 import { ParseMongoIdPipe } from '@/common/decorators/validators/pipes';
 import {
 	ApiSuccessResponseDto,
@@ -18,6 +20,7 @@ import {
 } from '@/common/utils/responses';
 import { GetVitalHistoryDto } from '@/features/vital-histories/dto';
 import {
+	CreatePharmacyPatientDto,
 	FilterPatientsDto,
 	FilterPatientsNoPaginateDto,
 	GetPatientDto,
@@ -56,17 +59,30 @@ export class PatientsController {
 	// 	}
 	// }
 
+	@CustomApiResponse(['created', 'authorizeChronicCare'], {
+		message: 'Patient created successfully',
+	})
+	@Post()
+	async createPatient(@Body() dto: CreatePharmacyPatientDto) {
+		try {
+			const response = await this.patientsService.createByPersonnel(dto);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.CREATED,
+				'Patient created successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
 	@CustomApiResponse(['paginated', 'authorizeChronicCare'], {
 		type: GetPatientDto,
 		message: 'Patients fetched successfully',
 	})
 	@Get()
-	async findAllForPharmacy(
-		@Query() query: FilterPatientsDto,
-		@GetUser('sub') personnelId: string,
-	) {
+	async findAllForPharmacy(@Query() query: FilterPatientsDto) {
 		try {
-			query.personnelId = personnelId;
 			const response = await this.patientsService.findAll(query);
 			const paginated = new PaginatedDataResponseDto(
 				response.rows,

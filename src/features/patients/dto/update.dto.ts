@@ -1,4 +1,9 @@
-import { ApiPropertyOptional, PartialType, PickType } from '@nestjs/swagger';
+import {
+	ApiPropertyOptional,
+	OmitType,
+	PartialType,
+	PickType,
+} from '@nestjs/swagger';
 import { Expose } from 'class-transformer';
 import {
 	IsMongoId,
@@ -54,3 +59,7 @@ export class UpdatePatientDto extends PartialType(
 	@Expose({ name: 'facilityId' })
 	facility?: string;
 }
+
+export class CreatePharmacyPatientDto extends OmitType(UpdatePatientDto, [
+	'facility',
+]) {}
