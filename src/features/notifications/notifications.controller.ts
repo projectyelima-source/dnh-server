@@ -74,6 +74,45 @@ export class NotificationsController {
 		}
 	}
 
+	@CustomApiResponse(['successNull', 'authorizeChronicCare'], {
+		message: 'Personnel FCM token added succesffully',
+	})
+	@Post('hcp/fcm-tokens')
+	@HttpCode(HttpStatus.OK)
+	async addPersonnelFcm(
+		@Body() createPushDto: CreatePushDto,
+		@GetUser() user: IUserPayload,
+	) {
+		try {
+			await this.notificationsService.addFcmToken(createPushDto, user);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Personnel FCM token added succesffully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['successNull', 'authorizeChronicCare'], {
+		message: 'Personnel FCM token removed succesffully',
+	})
+	@Delete('hcp/fcm-tokens')
+	async removePersonnelFcm(
+		@Body() dto: CreatePushDto,
+		@GetUser('sub') personnelId: string,
+	) {
+		try {
+			await this.notificationsService.removeFcmToken(dto, personnelId);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Personnel FCM token removed succesffully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
 	@CustomApiResponse(['created'], {
 		message: 'Notification created successfully',
 	})

@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsFutureDate } from '@/common/decorators/validators';
 import { PaginationRequestDto } from '@/common/dto';
 import { AppointmentDto, AppointmentStatus } from './appointment.dto';
 
@@ -48,4 +49,12 @@ export class RescheduleAppointmentDto {
 	@ApiProperty({ example: 'Patient requested a later time' })
 	@IsString()
 	reason: string;
+
+	@ApiProperty({
+		description: 'New date and time for the appointment',
+		example: '2026-07-01T10:00:00.000Z',
+	})
+	@IsDateString()
+	@IsFutureDate()
+	appointmentDate: string;
 }

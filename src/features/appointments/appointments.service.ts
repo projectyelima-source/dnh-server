@@ -1,12 +1,15 @@
+import { InjectQueue } from '@nestjs/bullmq';
 import {
 	BadRequestException,
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Queue } from 'bullmq';
 import { Model, Types } from 'mongoose';
 import { generateFilter } from '@/common/factory';
 import { PatientsService } from '@/features/patients/patients.service';
+import { APPOINTMENT_REMINDER_QUEUE } from './appointments.constants';
 import {
 	AppointmentFilter,
 	AppointmentStatus,
@@ -25,7 +28,25 @@ export class AppointmentsService {
 		@InjectModel(Appointment.name)
 		private readonly appointmentModel: Model<Appointment>,
 		private readonly patientsService: PatientsService,
+		@InjectQueue(APPOINTMENT_REMINDER_QUEUE)
+		private readonly reminderQueue: Queue,
 	) {}
+
+	private async scheduleReminder(appointmentId: string, appointmentDate: Date) {
+		const delay = new Date(appointmentDate).getTime() - Date.now();
+		if (delay <= 0) return;
+
+		await this.reminderQueue.add(
+			'remind',
+			{ appointmentId },
+			{ delay, jobId: appointmentId },
+		);
+	}
+
+	private async cancelReminder(appointmentId: string) {
+		const job = await this.reminderQueue.getJob(appointmentId);
+		if (job) await job.remove();
+	}
 
 	async create(dto: CreateAppointmentDto) {
 		const { patient: patientId, ...rest } = dto;
@@ -38,7 +59,13 @@ export class AppointmentsService {
 			payload.userId = patient.userId;
 		}
 
-		return this.appointmentModel.create(payload);
+		const appointment = await this.appointmentModel.create(payload);
+		await this.scheduleReminder(
+			appointment._id.toString(),
+			appointment.appointmentDate,
+		);
+
+		return appointment;
 	}
 
 	async createPatientAppointment(
@@ -58,6 +85,11 @@ export class AppointmentsService {
 			patient: new Types.ObjectId(patientId),
 			...(facilityId && { host: new Types.ObjectId(facilityId) }),
 		});
+
+		await this.scheduleReminder(
+			appointment._id.toString(),
+			appointment.appointmentDate,
+		);
 
 		return appointment._id;
 	}
@@ -172,7 +204,10 @@ export class AppointmentsService {
 		appointment.cancelledBy = new Types.ObjectId(personnelId) as any;
 		appointment.reason = dto.reason;
 
-		return appointment.save();
+		await this.cancelReminder(id);
+
+		await appointment.save();
+		return appointment._id;
 	}
 
 	async rescheduleAppointment(
@@ -199,9 +234,14 @@ export class AppointmentsService {
 		appointment.rescheduledAt = new Date();
 		appointment.rescheduledBy = new Types.ObjectId(personnelId) as any;
 		appointment.reason = dto.reason;
+		appointment.appointmentDate = new Date(dto.appointmentDate);
 		appointment.rescheduledCount = (appointment.rescheduledCount ?? 0) + 1;
 
-		return appointment.save();
+		await this.cancelReminder(id);
+		await this.scheduleReminder(id, appointment.appointmentDate);
+
+		await appointment.save();
+		return appointment._id;
 	}
 
 	async completeAppointment(id: string, personnelId: string) {
@@ -224,7 +264,10 @@ export class AppointmentsService {
 		appointment.hostPersonnel = new Types.ObjectId(personnelId) as any;
 		appointment.completedAt = new Date();
 
-		return appointment.save();
+		await this.cancelReminder(id);
+
+		await appointment.save();
+		return appointment._id;
 	}
 
 	async removeByPatientId(patientId: string) {

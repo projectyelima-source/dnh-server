@@ -106,12 +106,29 @@ export class HcpService {
 			throw new NotFoundException('Patient not found');
 		}
 
-		return this.appointmentsService.createPatientAppointment(
-			dto,
-			patientId,
-			personnelId,
-			facilityId,
+		const appointmentId =
+			await this.appointmentsService.createPatientAppointment(
+				dto,
+				patientId,
+				personnelId,
+				facilityId,
+			);
+
+		this.pushService.sendNotification(
+			() => ({
+				notification: {
+					title: 'New Appointment Scheduled',
+					body: `You have a new appointment: ${dto.title}.`,
+				},
+				data: {
+					notification_type: 'appointment_scheduled',
+					click_action: 'FLUTTER_NOTIFICATION_CLICK',
+				},
+			}),
+			patient.userId,
 		);
+
+		return appointmentId;
 	}
 
 	async findPatientAppointments(
@@ -244,6 +261,7 @@ export class HcpService {
 		const updated = await this.appointmentRequestsService.update(id, {
 			status: dto.status,
 		});
+		if (!updated) throw new NotFoundException('Appointment request not found');
 
 		if (dto.status === AppointmentRequestStatus.APPROVED) {
 			await this.appointmentsService.createPatientAppointment(
@@ -276,7 +294,7 @@ export class HcpService {
 			patient.userId,
 		);
 
-		return updated;
+		return updated._id;
 	}
 
 	async deletePatientAppointmentRequest(patientId: string, id: string) {
@@ -331,12 +349,13 @@ export class HcpService {
 			'_id',
 		);
 		if (!patient) throw new NotFoundException('Patient not found');
-		return this.concernsService.updateSymptomForFacility(
+		const symptom = await this.concernsService.updateSymptomForFacility(
 			facilityId,
 			patientId,
 			id,
 			dto,
 		);
+		return symptom._id;
 	}
 
 	async deletePatientSymptom(
@@ -366,11 +385,12 @@ export class HcpService {
 			'_id',
 		);
 		if (!patient) throw new NotFoundException('Patient not found');
-		return this.concernsService.resolveSymptomForFacility(
+		const symptom = await this.concernsService.resolveSymptomForFacility(
 			facilityId,
 			patientId,
 			id,
 		);
+		return symptom._id;
 	}
 
 	async findPatientVitalHistoryLogs(
@@ -422,7 +442,12 @@ export class HcpService {
 			throw new NotFoundException('Patient not found');
 		}
 
-		return this.vitalHistoriesService.updateVitalLog(patient.userId, id, dto);
+		const log = await this.vitalHistoriesService.updateVitalLog(
+			patient.userId,
+			id,
+			dto,
+		);
+		return log._id;
 	}
 
 	async findPatientVitalTrends(

@@ -239,6 +239,7 @@ export class PushService {
 			switch (userTokens[0].userType) {
 				case UserType.DEV:
 				case UserType.DH_CLIENTS:
+				case UserType.CHRONIC_CARE:
 					messagingProject = this.firebaseService.messaging;
 					break;
 				default:

@@ -27,7 +27,6 @@ import {
 	UpdateAppointmentRequestStatusDto,
 } from '@/features/appointments/appointment-requests/dto';
 import {
-	AppointmentDto,
 	CancelAppointmentDto,
 	CreatePatientAppointmentDto,
 	GetAppointmentDto,
@@ -36,7 +35,6 @@ import {
 } from '@/features/appointments/dto';
 import { ChronicCareQueryDto } from '@/features/client/dto';
 import {
-	GetConcernDto,
 	GetSymptomDto,
 	GetSymptomsQueryDto,
 	UpdateConcernDto,
@@ -480,7 +478,7 @@ export class HcpController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorizeChronicCare'], {
+	@CustomApiResponse(['updated', 'authorizeChronicCare'], {
 		message: 'Vital history log updated successfully',
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
@@ -595,8 +593,7 @@ export class HcpController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
-		type: GetAppointmentRequestDto,
+	@CustomApiResponse(['updated', 'notfound', 'authorizeChronicCare'], {
 		message: 'Appointment request status updated successfully',
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
@@ -707,8 +704,7 @@ export class HcpController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
-		type: GetSymptomDto,
+	@CustomApiResponse(['updated', 'notfound', 'authorizeChronicCare'], {
 		message: 'Symptom updated successfully',
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
@@ -757,8 +753,7 @@ export class HcpController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
-		type: GetConcernDto,
+	@CustomApiResponse(['updated', 'notfound', 'authorizeChronicCare'], {
 		message: 'Symptom resolved successfully',
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
@@ -784,8 +779,7 @@ export class HcpController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorizeChronicCare'], {
-		type: AppointmentDto,
+	@CustomApiResponse(['updated', 'authorizeChronicCare'], {
 		message: 'Appointment cancelled successfully',
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
@@ -813,8 +807,7 @@ export class HcpController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorizeChronicCare'], {
-		type: AppointmentDto,
+	@CustomApiResponse(['updated', 'authorizeChronicCare'], {
 		message: 'Appointment rescheduled successfully',
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
@@ -842,8 +835,7 @@ export class HcpController {
 		}
 	}
 
-	@CustomApiResponse(['success', 'authorizeChronicCare'], {
-		type: AppointmentDto,
+	@CustomApiResponse(['updated', 'authorizeChronicCare'], {
 		message: 'Appointment completed successfully',
 	})
 	@Roles(PersonnelRoles.CLINICIAN)
