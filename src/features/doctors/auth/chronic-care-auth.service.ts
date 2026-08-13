@@ -41,6 +41,17 @@ export class ChronicCareAuthService {
 
 		let personnelId: any = existingAccount?.personnel;
 
+		if (
+			personnelId &&
+			!(await this.personnelModel.exists({ _id: personnelId }))
+		) {
+			// The account row outlived its personnel (e.g. deleted via
+			// DELETE /personnel/auth without this row being cleaned up).
+			// Drop the orphaned row instead of resurrecting the dead id.
+			await this.personnelAccountModel.deleteOne({ _id: existingAccount!._id });
+			personnelId = undefined;
+		}
+
 		if (!personnelId) {
 			const personnel = await this.personnelModel.create({
 				role: PersonnelRoles.CLINICIAN,
