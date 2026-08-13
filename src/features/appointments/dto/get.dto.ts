@@ -13,6 +13,7 @@ export class GetAppointmentDto extends PickType(AppointmentDto, [
 	'id',
 	'title',
 	'appointmentDate',
+	'status',
 	'hostPersonnel',
 ]) {}
 

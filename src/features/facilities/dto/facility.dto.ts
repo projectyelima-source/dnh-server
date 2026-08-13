@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import { IsOptional, IsPhoneNumber, IsString } from 'class-validator';
 import { GenericResponseDto } from '@/common/dto';
 
@@ -18,3 +18,5 @@ export class FacilityDto extends GenericResponseDto {
 	@IsPhoneNumber('GH')
 	phoneNumber?: string;
 }
+
+export class FacilityRefDto extends PickType(FacilityDto, ['id', 'name']) {}

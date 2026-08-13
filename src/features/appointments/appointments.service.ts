@@ -143,7 +143,7 @@ export class AppointmentsService {
 		const [rows, count] = await Promise.all([
 			this.appointmentModel
 				.find(filter)
-				.select('title appointmentDate hostPersonnel')
+				.select('title appointmentDate status hostPersonnel')
 				.populate({
 					path: 'hostPersonnel',
 					select: 'userName facility',

@@ -395,7 +395,8 @@ export class PatientsService {
 			.findOne({
 				$or: [{ userId }, { _id: patientId }],
 			})
-			.select('-pharmaciesVisited -doctorsVisited -qdrantId');
+			.select('-pharmaciesVisited -doctorsVisited -qdrantId')
+			.populate({ path: 'facility', select: '_id name' });
 
 		if (!patient) {
 			throw new NotFoundException('Patient not found');

@@ -587,6 +587,7 @@ export class HcpService {
 	async findOnePatient(id: string) {
 		const patient = await this.patientsService.findOne(id);
 		const plain = patient.toObject();
+		const facility = plain.facility as any;
 
 		const criticalReadingsCount =
 			await this.vitalHistoriesService.countVitalsBySeverity(
@@ -596,6 +597,9 @@ export class HcpService {
 
 		return {
 			...plain,
+			facility: facility
+				? { id: facility._id.toString(), name: facility.name }
+				: undefined,
 			criticalReadingsCount,
 			assignedToYou: false,
 		};
