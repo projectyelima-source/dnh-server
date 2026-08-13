@@ -3,6 +3,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { differenceInYears } from 'date-fns';
 import { Model, Types } from 'mongoose';
 import {
 	concatWith,
@@ -167,6 +168,46 @@ export class PatientsService {
 				),
 			),
 		);
+
+		return patient._id;
+	}
+
+	async createByPersonnel(dto: UpdatePatientDto) {
+		const { firstname, lastname, facility, age, dateOfBirth, ...rest } = dto;
+
+		const name = [firstname, lastname].filter(Boolean).join(' ') || undefined;
+		const computedAge =
+			age ??
+			(dateOfBirth ? differenceInYears(new Date(), dateOfBirth) : undefined);
+
+		const patient = await this.patientModel.create({
+			...rest,
+			userId: `hcp-${uuidv7()}`,
+			patientCode: generateCode(),
+			name,
+			dateOfBirth,
+			age: computedAge,
+			...(facility && { facility: new Types.ObjectId(facility) }),
+		} as any);
+
+		if (dto.chronicConditions?.length) {
+			await Promise.all(
+				dto.chronicConditions.map((conditionName) =>
+					this.chronicConditionsService.upsertChronicCondition(
+						{
+							userId: patient.userId,
+							patient: patient._id.toString(),
+							conditionName,
+						},
+						{
+							userId: patient.userId,
+							patient: patient._id.toString(),
+							conditionName,
+						},
+					),
+				),
+			);
+		}
 
 		return patient._id;
 	}

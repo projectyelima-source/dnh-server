@@ -9,6 +9,7 @@ import {
 	IsNotEmpty,
 	IsNumber,
 	IsOptional,
+	IsPhoneNumber,
 	IsString,
 	Min,
 	MinLength,
@@ -133,6 +134,14 @@ export class OnboardDto {
 	@IsMongoId()
 	@Expose({ name: 'facilityId' })
 	facility?: string;
+
+	@ApiPropertyOptional({
+		description: "Patient's phone number in E.164 format",
+		example: '+233541234567',
+	})
+	@IsOptional()
+	@IsPhoneNumber()
+	phoneNumber?: string;
 }
 
 export class GoogleLoginDto {

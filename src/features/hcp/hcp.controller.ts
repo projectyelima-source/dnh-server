@@ -293,6 +293,24 @@ export class HcpController {
 		}
 	}
 
+	@CustomApiResponse(['created', 'authorizeChronicCare'], {
+		message: 'Patient created successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Post('patients')
+	async createPatient(@Body() dto: UpdatePatientDto) {
+		try {
+			const response = await this.hcpService.createPatient(dto);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.CREATED,
+				'Patient created successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
 	@CustomApiResponse(['updated', 'notfound', 'authorizeChronicCare'], {
 		message: 'Patient updated successfully',
 	})

@@ -576,6 +576,10 @@ export class HcpService {
 		return this.patientsService.fetchLatestPatientVitals(patientId);
 	}
 
+	async createPatient(dto: UpdatePatientDto) {
+		return this.patientsService.createByPersonnel(dto);
+	}
+
 	async updatePatient(id: string, dto: UpdatePatientDto) {
 		return this.patientsService.updatePatient(id, dto);
 	}

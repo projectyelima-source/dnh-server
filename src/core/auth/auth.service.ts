@@ -63,6 +63,7 @@ export class AuthService {
 			age,
 			chronicConditions: dto.chronicConditions,
 			facility: dto.facility,
+			phoneNumber: dto.phoneNumber,
 		});
 		// yearOfBirth: dto.yearOfBirth,
 		// ghanaCardNumber: dto.ghanaCardNumber,
