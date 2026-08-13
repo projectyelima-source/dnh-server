@@ -36,6 +36,12 @@ import {
 } from '@/features/appointments/dto';
 import { ChronicCareQueryDto } from '@/features/client/dto';
 import {
+	GetConcernDto,
+	GetSymptomDto,
+	GetSymptomsQueryDto,
+	UpdateConcernDto,
+} from '@/features/concerns/dto';
+import {
 	AdherenceLogsQueryDto,
 	GetMedicationDto,
 	MedicationAdherenceLogsDto,
@@ -635,6 +641,143 @@ export class HcpController {
 			return new ApiSuccessResponseNoData(
 				HttpStatus.OK,
 				'Appointment request deleted successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['paginated', 'authorizeChronicCare'], {
+		type: GetSymptomDto,
+		message: 'Symptoms fetched successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Get('patients/:patientId/symptoms')
+	async findPatientSymptoms(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@GetUser('facility') facilityId: string,
+		@Query() query: GetSymptomsQueryDto,
+	) {
+		try {
+			const response = await this.hcpService.findPatientSymptoms(
+				patientId,
+				facilityId,
+				query,
+			);
+			const paginated = new PaginatedDataResponseDto(
+				response.rows,
+				query.page,
+				query.pageSize,
+				response.count,
+			);
+			return new ApiSuccessResponseDto(
+				paginated,
+				HttpStatus.OK,
+				'Symptoms fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
+		type: GetSymptomDto,
+		message: 'Symptom fetched successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Get('patients/:patientId/symptoms/:id')
+	async findPatientSymptom(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@Param('id', ParseMongoIdPipe) id: string,
+		@GetUser('facility') facilityId: string,
+	) {
+		try {
+			const response = await this.hcpService.findPatientSymptom(
+				patientId,
+				facilityId,
+				id,
+			);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Symptom fetched successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
+		type: GetSymptomDto,
+		message: 'Symptom updated successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Patch('patients/:patientId/symptoms/:id')
+	async updatePatientSymptom(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@Param('id', ParseMongoIdPipe) id: string,
+		@GetUser('facility') facilityId: string,
+		@Body() dto: UpdateConcernDto,
+	) {
+		try {
+			const response = await this.hcpService.updatePatientSymptom(
+				patientId,
+				facilityId,
+				id,
+				dto,
+			);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Symptom updated successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['successNull', 'notfound', 'authorizeChronicCare'], {
+		message: 'Symptom deleted successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Delete('patients/:patientId/symptoms/:id')
+	async deletePatientSymptom(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@Param('id', ParseMongoIdPipe) id: string,
+		@GetUser('facility') facilityId: string,
+	) {
+		try {
+			await this.hcpService.deletePatientSymptom(patientId, facilityId, id);
+			return new ApiSuccessResponseNoData(
+				HttpStatus.OK,
+				'Symptom deleted successfully',
+			);
+		} catch (error) {
+			throwError(this.logger, error);
+		}
+	}
+
+	@CustomApiResponse(['success', 'notfound', 'authorizeChronicCare'], {
+		type: GetConcernDto,
+		message: 'Symptom resolved successfully',
+	})
+	@Roles(PersonnelRoles.CLINICIAN)
+	@Patch('patients/:patientId/symptoms/:id/resolve')
+	async resolvePatientSymptom(
+		@Param('patientId', ParseMongoIdPipe) patientId: string,
+		@Param('id', ParseMongoIdPipe) id: string,
+		@GetUser('facility') facilityId: string,
+	) {
+		try {
+			const response = await this.hcpService.resolvePatientSymptom(
+				patientId,
+				facilityId,
+				id,
+			);
+			return new ApiSuccessResponseDto(
+				response,
+				HttpStatus.OK,
+				'Symptom resolved successfully',
 			);
 		} catch (error) {
 			throwError(this.logger, error);

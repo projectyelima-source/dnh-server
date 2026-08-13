@@ -25,6 +25,8 @@ import {
 	RescheduleAppointmentDto,
 } from '@/features/appointments/dto';
 import { ChronicCareQueryDto } from '@/features/client/dto';
+import { ConcernsService } from '@/features/concerns/concerns.service';
+import { GetSymptomsQueryDto, UpdateConcernDto } from '@/features/concerns/dto';
 import {
 	AdherenceLogsQueryDto,
 	MedicationAdherenceLogsDto,
@@ -57,6 +59,7 @@ export class HcpService {
 		private readonly vitalHistoriesService: VitalHistoriesService,
 		private readonly appointmentsService: AppointmentsService,
 		private readonly appointmentRequestsService: AppointmentRequestsService,
+		private readonly concernsService: ConcernsService,
 		private readonly pushService: PushService,
 	) {}
 
@@ -285,6 +288,89 @@ export class HcpService {
 		const request = await this.appointmentRequestsService.findOne(id);
 		if (!request) throw new NotFoundException('Appointment request not found');
 		return this.appointmentRequestsService.remove(id);
+	}
+
+	async findPatientSymptoms(
+		patientId: string,
+		facilityId: string,
+		query: GetSymptomsQueryDto,
+	) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		return this.concernsService.findAllSymptomsForFacility(
+			facilityId,
+			patientId,
+			query,
+		);
+	}
+
+	async findPatientSymptom(patientId: string, facilityId: string, id: string) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		return this.concernsService.findSymptomForFacility(
+			facilityId,
+			patientId,
+			id,
+		);
+	}
+
+	async updatePatientSymptom(
+		patientId: string,
+		facilityId: string,
+		id: string,
+		dto: UpdateConcernDto,
+	) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		return this.concernsService.updateSymptomForFacility(
+			facilityId,
+			patientId,
+			id,
+			dto,
+		);
+	}
+
+	async deletePatientSymptom(
+		patientId: string,
+		facilityId: string,
+		id: string,
+	) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		return this.concernsService.deleteSymptomForFacility(
+			facilityId,
+			patientId,
+			id,
+		);
+	}
+
+	async resolvePatientSymptom(
+		patientId: string,
+		facilityId: string,
+		id: string,
+	) {
+		const patient = await this.patientsService.findPatientById(
+			patientId,
+			'_id',
+		);
+		if (!patient) throw new NotFoundException('Patient not found');
+		return this.concernsService.resolveSymptomForFacility(
+			facilityId,
+			patientId,
+			id,
+		);
 	}
 
 	async findPatientVitalHistoryLogs(

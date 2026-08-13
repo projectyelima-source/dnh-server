@@ -10,6 +10,7 @@ import {
 	IsOptional,
 	IsString,
 } from 'class-validator';
+import { IsFutureDate } from '@/common/decorators/validators';
 import { GenericResponseDto } from '@/common/dto';
 import { FacilityDto } from '@/features/facilities/dto';
 import { PatientDto } from '@/features/patients/dto';
@@ -60,6 +61,7 @@ export class AppointmentRequestDto extends GenericResponseDto {
 	})
 	@IsDateString()
 	@IsOptional()
+	@IsFutureDate()
 	preferredDate?: string;
 
 	@ApiProperty({

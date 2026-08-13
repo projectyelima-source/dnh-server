@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { v7 as uuidv7 } from 'uuid';
 import { generateFilter } from '@/common/factory';
 import { flattenMeta } from '../../common/entities/base-dh.entity';
@@ -24,7 +24,7 @@ export class ConcernsService {
 	async create(userId: string, addSymptomsDto: AddSymptomsDto) {
 		const patient = await this.patientsService.findPatientByUserId(
 			userId,
-			'_id',
+			'_id facility',
 		);
 		if (!patient) {
 			throw new NotFoundException('Patient record not found');
@@ -33,6 +33,7 @@ export class ConcernsService {
 		const symptom = await this.concernModel.create({
 			userId,
 			patient: patient._id,
+			host: patient.facility as any,
 			concernType: ConcernTypeEnum.SYMPTOMS,
 			onsetDate: new Date(),
 			description: addSymptomsDto.description,
@@ -210,5 +211,109 @@ export class ConcernsService {
 
 	async removeByUserId(userId: string) {
 		return this.concernModel.deleteMany({ userId });
+	}
+
+	async findAllSymptomsForFacility(
+		facilityId: string,
+		patientId: string,
+		query: GetSymptomsQueryDto,
+	) {
+		const filter = {
+			host: new Types.ObjectId(facilityId),
+			patient: new Types.ObjectId(patientId),
+			concernType: ConcernTypeEnum.SYMPTOMS,
+		};
+		const pageFilter = generateFilter(query).pageFilter;
+
+		const [rows, count] = await Promise.all([
+			this.concernModel
+				.find(filter)
+				.select('description onsetDate')
+				.skip(pageFilter.offset)
+				.limit(pageFilter.limit)
+				.sort(pageFilter.orderBy),
+			this.concernModel.countDocuments(filter),
+		]);
+
+		return { rows, count };
+	}
+
+	async findSymptomForFacility(
+		facilityId: string,
+		patientId: string,
+		id: string,
+	) {
+		const symptom = await this.concernModel
+			.findOne({
+				_id: id,
+				host: new Types.ObjectId(facilityId),
+				patient: new Types.ObjectId(patientId),
+				concernType: ConcernTypeEnum.SYMPTOMS,
+			})
+			.select('description onsetDate');
+		if (!symptom) {
+			throw new NotFoundException('Symptom not found');
+		}
+		return symptom;
+	}
+
+	async updateSymptomForFacility(
+		facilityId: string,
+		patientId: string,
+		id: string,
+		dto: UpdateConcernDto,
+	) {
+		const symptom = await this.concernModel.findOneAndUpdate(
+			{
+				_id: id,
+				host: new Types.ObjectId(facilityId),
+				patient: new Types.ObjectId(patientId),
+				concernType: ConcernTypeEnum.SYMPTOMS,
+			},
+			{ $set: dto },
+			{ new: true },
+		);
+		if (!symptom) {
+			throw new NotFoundException('Symptom not found');
+		}
+		return symptom;
+	}
+
+	async deleteSymptomForFacility(
+		facilityId: string,
+		patientId: string,
+		id: string,
+	) {
+		const symptom = await this.concernModel.findOneAndDelete({
+			_id: id,
+			host: new Types.ObjectId(facilityId),
+			patient: new Types.ObjectId(patientId),
+			concernType: ConcernTypeEnum.SYMPTOMS,
+		});
+		if (!symptom) {
+			throw new NotFoundException('Symptom not found');
+		}
+		return symptom;
+	}
+
+	async resolveSymptomForFacility(
+		facilityId: string,
+		patientId: string,
+		id: string,
+	) {
+		const symptom = await this.concernModel.findOneAndUpdate(
+			{
+				_id: id,
+				host: new Types.ObjectId(facilityId),
+				patient: new Types.ObjectId(patientId),
+				concernType: ConcernTypeEnum.SYMPTOMS,
+			},
+			{ $set: { resolved: true } },
+			{ new: true },
+		);
+		if (!symptom) {
+			throw new NotFoundException('Symptom not found');
+		}
+		return symptom;
 	}
 }

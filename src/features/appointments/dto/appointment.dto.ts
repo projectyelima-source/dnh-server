@@ -11,6 +11,7 @@ import {
 	IsString,
 	Length,
 } from 'class-validator';
+import { IsFutureDate } from '@/common/decorators/validators';
 import { GenericResponseDto } from '@/common/dto';
 import { PersonnelDto } from '@/features/doctors/dto';
 import { PatientDto } from '@/features/patients/dto';
@@ -55,6 +56,7 @@ export class AppointmentDto extends GenericResponseDto {
 		example: '2026-06-22T10:00:00.000Z',
 	})
 	@IsDateString()
+	@IsFutureDate()
 	appointmentDate: string;
 
 	@ApiProperty({

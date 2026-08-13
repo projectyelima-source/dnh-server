@@ -2,6 +2,7 @@ import { Prop, Schema, SchemaFactory, Virtual } from '@nestjs/mongoose';
 import { ObjectId } from 'mongodb';
 import { deleteByPattern } from '@/core/caching/utils';
 import { BaseDH } from '../../../common/entities/base-dh.entity';
+import { Facility } from '../../facilities/entities/facility.entity';
 import { Patient } from '../../patients/entities/patient.entity';
 import { myEmitter } from '../../patients/utils/summary.event';
 import { Sections } from '../../patients/utils/summary.util';
@@ -44,6 +45,14 @@ export class Concern extends BaseDH {
 		description: 'Patient ID (MongoDB ObjectId) associated with this concern',
 	})
 	patient: Patient;
+
+	@Prop({
+		index: true,
+		type: ObjectId,
+		ref: 'Facility',
+		description: 'Medical facility the associated patient belongs to',
+	})
+	host: Facility;
 
 	@Prop({
 		type: String,
